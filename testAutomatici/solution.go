@@ -304,7 +304,7 @@ func posizioni(p piano, s string) {
 }
 
 func distanzaPunti(p1 punto, p2 punto) int {
-	return int(math.Abs(float64(p1.x-p2.x)) + math.Abs(float64(p1.y-p2.y)))
+	return int(math.Abs(float64(p2.x-p1.x)) + math.Abs(float64(p2.y-p1.y)))
 
 	// Costo: O(1)
 }
