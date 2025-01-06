@@ -22,3 +22,4 @@ Piano con la p maiuscola va bene o no?
 
 Storia della struct con puntatore o meno. Se non è elegante, non posso fare receiver con puntatore. Inizializzazione di
 un piano all'interno del main con crea.
+Anche questione di rehashing. 

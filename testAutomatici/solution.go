@@ -39,7 +39,7 @@ type piano *struct {
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	piano := crea()
+	piano := newPiano()
 	/*
 		piano := crea()
 		automa(piano, 2, 1, "1")
@@ -58,7 +58,9 @@ func main() {
 
 		stampa(piano)
 
-		fmt.Println(esistePercorso(piano, 5, 3, "100"))
+		//fmt.Println(esistePercorso(piano, 5, 3, "100"))
+		richiamo(piano, 5, 3, "1")
+		stampa(piano)
 	*/
 
 	for scanner.Scan() {
@@ -157,7 +159,7 @@ func esegui(p piano, s string) {
 
 	switch comandi[0] {
 	case "c":
-		p = crea()
+		crea(p)
 	case "s":
 		stato(p, a, b)
 	case "S":
@@ -205,8 +207,10 @@ func newPiano() piano {
 	}
 }
 
-func crea() piano {
-	return newPiano()
+func crea(p piano) {
+	p.automi = make(map[string]punto)
+	p.ostacoli = &myListRettangoli{}
+	p.puntiConosciuti = make(map[punto]string)
 	// Costo: O(1)
 }
 
@@ -352,16 +356,16 @@ func bfs(p piano, puntoPartenza punto, puntoArrivo punto, dx int, dy int, distan
 
 	coda := &MyCoda{}
 	coda.enqueue(puntoPartenza, 0)
-	visitati := make(map[punto]bool)
+	//visitati := make(map[Punto]bool)
 	for !coda.isEmpty() {
 		punto, distanzaPunto := coda.dequeue()
-
-		//se il punto è già stato visitato, allora non lo visito di nuovo
-		if visitati[punto] {
-			continue
-		}
-		visitati[punto] = true
-
+		/*
+			//se il punto è già stato visitato, allora non lo visito di nuovo
+			if visitati[punto] {
+				continue
+			}
+			visitati[punto] = true
+		*/
 		if distanzaPunto == distanzaD && punto == puntoArrivo {
 			return true
 		}
@@ -428,8 +432,8 @@ func richiamo(p piano, x int, y int, s string) {
 	automiDaSpostare := []string{}
 	min := -1
 	for _, nome := range nomiAutomi {
-		d := distanzaPunti(p.automi[nome], punto)
-		if (min != -1 && d <= min) && esistePercorso(p, x, y, nome) {
+		if esistePercorso(p, x, y, nome) {
+			d := distanzaPunti(p.automi[nome], punto)
 			if min == -1 || d < min {
 				min = d
 				automiDaSpostare = []string{nome}
