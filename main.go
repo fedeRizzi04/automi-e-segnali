@@ -62,6 +62,11 @@ func main() {
 		richiamo(piano, 5, 3, "1")
 		stampa(piano)
 	*/
+	automa(piano, 1, 2, "a")
+	ostacolo(piano, 1, 3, 4, 6)
+	ostacolo(piano, 3, 2, 4, 7)
+	stampa(piano)
+	fmt.Println(esistePercorso(piano, 5, 3, "a"))
 
 	for scanner.Scan() {
 		esegui(piano, scanner.Text())
