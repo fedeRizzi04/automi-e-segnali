@@ -51,7 +51,7 @@ func existsPath(nx, ny, x, y int, obstacles []Rectangle, n, m int) bool {
 	// Punto di partenza
 	dp[nx][ny] = 0
 
-	// Iterazione per riempire DP (limitata alle due direzioni)
+	// Primo passaggio: verso giù e verso destra (scorrimento normale)
 	for i := 0; i < n; i++ {
 		for j := 0; j < m; j++ {
 			conta++
@@ -67,6 +67,26 @@ func existsPath(nx, ny, x, y int, obstacles []Rectangle, n, m int) bool {
 			// Sposta verso destra
 			if j+1 < m && !isInObstacle(i+minX, j+1+minY, obstacles) && dp[i][j] != inf {
 				dp[i][j+1] = min(dp[i][j+1], dp[i][j]+1)
+			}
+		}
+	}
+
+	// Secondo passaggio: verso l'alto e verso sinistra (scorrimento inverso)
+	for i := n - 1; i >= 0; i-- {
+		for j := m - 1; j >= 0; j-- {
+			conta++
+			if isInObstacle(i+minX, j+minY, obstacles) {
+				continue // Salta i punti negli ostacoli
+			}
+
+			// Sposta verso il basso (già controllato nel primo passaggio)
+			if i-1 >= 0 && !isInObstacle(i-1+minX, j+minY, obstacles) && dp[i][j] != inf {
+				dp[i-1][j] = min(dp[i-1][j], dp[i][j]+1)
+			}
+
+			// Sposta verso destra (già controllato nel primo passaggio)
+			if j-1 >= 0 && !isInObstacle(i+minX, j-1+minY, obstacles) && dp[i][j] != inf {
+				dp[i][j-1] = min(dp[i][j-1], dp[i][j]+1)
 			}
 		}
 	}
@@ -95,29 +115,6 @@ func min(a, b int) int {
 
 // Esempio d'uso
 func main() {
-	/*
-		// Coordinate di partenza e arrivo
-		nx, ny := 2, 1
-		x, y := 5, 3
-
-		// Ostacoli
-		obstacles := []Rectangle{
-			{x0: 1, y0: 3, x1: 4, y1: 6},
-			{x0: 3, y0: 2, x1: 4, y1: 7},
-			//{x0: 3, y0: 0, x1: 15, y1: 1},
-		}
-
-		// Dimensioni della griglia
-		n, m := 5, 2
-
-		// Verifica se esiste un percorso
-		if existsPath(nx, ny, x, y, obstacles, n, m) {
-			fmt.Println("SI")
-		} else {
-			fmt.Println("NO")
-		}
-	*/
-
 	// Coordinate di partenza e arrivo
 	nx, ny := 3, 8
 	x, y := 8, 5
@@ -125,12 +122,33 @@ func main() {
 	// Ostacoli
 	obstacles := []Rectangle{
 		{x0: 2, y0: 2, x1: 6, y1: 6},
-		//{x0: 5, y0: 2, x1: 6, y1: 8},
+		{x0: 5, y0: 2, x1: 6, y1: 8},
 		{x0: 4, y0: 10, x1: 12, y1: 11},
 	}
 
 	// Dimensioni della griglia
 	n, m := 6, 4
+
+	// Verifica se esiste un percorso
+	if existsPath(nx, ny, x, y, obstacles, n, m) {
+		fmt.Println("SI")
+	} else {
+		fmt.Println("NO")
+	}
+
+	// Coordinate di partenza e arrivo
+	nx, ny = 2, 1
+	x, y = 5, 3
+
+	// Ostacoli
+	obstacles = []Rectangle{
+		{x0: 1, y0: 3, x1: 4, y1: 6},
+		{x0: 3, y0: 2, x1: 4, y1: 7},
+		{x0: 3, y0: 0, x1: 15, y1: 1},
+	}
+
+	// Dimensioni della griglia
+	n, m = 5, 2
 
 	// Verifica se esiste un percorso
 	if existsPath(nx, ny, x, y, obstacles, n, m) {
