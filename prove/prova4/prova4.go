@@ -5,9 +5,6 @@ import (
 	"math"
 )
 
-const inf = math.MaxInt32
-
-// Tipo per rappresentare un ostacolo come un rettangolo
 type Rectangle struct {
 	x0, y0, x1, y1 int
 }
@@ -22,101 +19,83 @@ func isInObstacle(x, y int, obstacles []Rectangle) bool {
 	return false
 }
 
-// Funzione per determinare le dimensioni della griglia
-func gridDimensions(x1, y1, x2, y2 int) (int, int, int, int) {
-	minX, maxX := min(x1, x2), max(x1, x2)
-	minY, maxY := min(y1, y2), max(y1, y2)
-
-	return minX, maxX, minY, maxY
+// Funzione per trovare il punto nel piano corrispondente a una cella della matrice
+func matrixToPoint(i, j, startX, startY, dirX, dirY int) (int, int) {
+	return startX + j*dirX, startY + i*dirY
 }
 
-// Funzione generica per riempire la matrice DP considerando entrambe le direzioni
-func fillDP(dp [][]int, obstacles []Rectangle, startX, endX, stepX, startY, endY, stepY int) {
-	n := len(dp)
-	m := len(dp[0])
+// Funzione per riempire la matrice booleana e determinare l'esistenza del percorso
+func fillDP(startX, startY, endX, endY int, obstacles []Rectangle, n, m int, dirX, dirY int) bool {
+	// Inizializza la matrice booleana
+	dp := make([][]bool, n)
+	for i := range dp {
+		dp[i] = make([]bool, m)
+	}
 
-	for x := startX; x != endX; x += stepX {
-		for y := startY; y != endY; y += stepY {
-			conta++
-			if isInObstacle(x, y, obstacles) {
-				dp[x][y] = inf
+	// Determina l'ordine delle righe e colonne in base alla direzione
+	rowStart, rowEnd, rowStep := 0, n, 1
+	if dirY < 0 {
+		rowStart, rowEnd, rowStep = n-1, -1, -1
+	}
+
+	colStart, colEnd, colStep := 0, m, 1
+	if dirX < 0 {
+		colStart, colEnd, colStep = m-1, -1, -1
+	}
+
+	// Calcola l'indice iniziale del punto di partenza
+	startRow := (startY - startY) / dirY
+	startCol := (startX - startX) / dirX
+	dp[startRow][startCol] = true
+
+	// Riempi la matrice
+	for i := rowStart; i != rowEnd; i += rowStep {
+		for j := colStart; j != colEnd; j += colStep {
+			if isInObstacle(startX+j*dirX, startY+i*dirY, obstacles) {
 				continue
 			}
 
-			if x-stepX >= 0 && x-stepX < n {
-				dp[x][y] = min(dp[x][y], dp[x-stepX][y]+1)
-			}
-			if y-stepY >= 0 && y-stepY < m {
-				dp[x][y] = min(dp[x][y], dp[x][y-stepY]+1)
-			}
+			fromAbove := i-rowStep >= 0 && i-rowStep < n && dp[i-rowStep][j]
+			fromLeft := j-colStep >= 0 && j-colStep < m && dp[i][j-colStep]
+
+			dp[i][j] = (fromAbove || fromLeft)
 		}
 	}
+
+	// Calcola l'indice del punto di arrivo
+	endRow := (endY - startY) / dirY
+	endCol := (endX - startX) / dirX
+
+	// Restituisci true se esiste un percorso libero
+	return dp[endRow][endCol]
 }
 
-// Funzione principale
-func existsPath(startX, startY, endX, endY int, obstacles []Rectangle) bool {
-	// Determina le dimensioni della griglia
-	minX, maxX, minY, maxY := gridDimensions(startX, startY, endX, endY)
-	n := maxX - minX + 1
-	m := maxY - minY + 1
-	// Matrice DP inizializzata
-	dp := make([][]int, n)
-	for i := range dp {
-		dp[i] = make([]int, m)
-		for j := range dp[i] {
-			conta++
-			dp[i][j] = inf
-		}
-	}
-	fmt.Println("Conta1 ", conta)
-	conta = 0
-	// Punto di partenza
-	dp[startX-minX][startY-minY] = 0
-
-	// Riempie la matrice in base alle direzioni ottimali
-	fillDP(dp, obstacles, 0, n, 1, 0, m, 1)
-
-	fmt.Println("Conta2 ", conta)
-
-	// Verifica il punto di arrivo
-	return dp[endX-minX][endY-minY] != inf
-}
-
-// Funzioni di supporto
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-var conta int = 0
-
-// Esempio d'uso
 func main() {
-	// Coordinate di partenza e arrivo
-	nx, ny := 3, 8
-	x, y := 8, 5
-
-	// Ostacoli
+	startX, startY := 0, 0
+	endX, endY := 8, 8
 	obstacles := []Rectangle{
-		{x0: 2, y0: 2, x1: 6, y1: 6},
-		{x0: 5, y0: 2, x1: 6, y1: 8},
-		{x0: 4, y0: 10, x1: 12, y1: 11},
+		{x0: 3, y0: 3, x1: 4, y1: 4},
+		//{x0: 8, y0: 8, x1: 9, y1: 9},
 	}
 
-	// Verifica se esiste un percorso
-	if existsPath(nx, ny, x, y, obstacles) {
+	// Calcola le dimensioni della griglia
+	n := int(math.Abs(float64(endY-startY))) + 1
+	m := int(math.Abs(float64(endX-startX))) + 1
+
+	// Determina la direzione del percorso
+	dirX := 1
+	if endX < startX {
+		dirX = -1
+	}
+	dirY := 1
+	if endY < startY {
+		dirY = -1
+	}
+
+	// Verifica l'esistenza del percorso
+	if fillDP(startX, startY, endX, endY, obstacles, n, m, dirX, dirY) {
 		fmt.Println("SI")
 	} else {
 		fmt.Println("NO")
 	}
-
 }
