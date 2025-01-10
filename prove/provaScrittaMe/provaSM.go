@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -79,6 +78,9 @@ func esistePercorso(partenza punto, arrivo punto) bool {
 		dp[i] = make([]bool, colonne)
 	}
 	dp[partenzaRighe][0] = true
+	if diry == 0 {
+		diry = 1
+	}
 
 	for i := partenzaRighe; i != finaleRighe; i += diry {
 		for j := 0; j < colonne; j++ {
@@ -146,32 +148,18 @@ func normalizzaEntrataTabella(partenza punto, arrivo punto, dy int, i int, j int
 
 func main() {
 
-	partenza := punto{3, 8}
-	arrivo := punto{8, 5}
-	//CONTROLLARE DIMENSIONE TABELLA CON NUMERI NEGATIVI
-	fmt.Println(dimensioneTabella(partenza, arrivo))
-	aggiungiPerimetro(2, 2, 6, 6)
-	aggiungiPerimetro(5, 2, 6, 8)
-	aggiungiPerimetro(4, 10, 12, 11)
+	partenza := punto{1, 2}
+	arrivo := punto{10, 2}
 
-	/*
-		fmt.Println(dimensioneTabella(punto{-2, 1}, punto{-7, -3}))
-		fmt.Println(dimensioneTabella(punto{-10, -10}, punto{-2, -14}))
-		fmt.Println(dimensioneTabella(punto{-7, -3}, punto{-7, 4}))
-		fmt.Println(dimensioneTabella(punto{-7, 3}, punto{9, 3}))
+	//aggiungiPerimetro(1, 3, 4, 6)
+	//aggiungiPerimetro(3, 2, 4, 7)
+	//aggiungiPerimetro(3, 0, 15, 1)
+	//aggiungiPerimetro(6, 1, 10, 3)
+	//aggiungiPerimetro(6, 5, 7, 8)
 
-		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, 1}, 1, 0, 0))
-		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, 1}, 1, 2, 3))
-		fmt.Println()
-
-		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 1, 0))
-		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 1, 3))
-		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 0, 2))
-		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 0, 5))
-	*/
-
-	fmt.Println(esistePercorso(partenza, arrivo))
-	fmt.Println(esistePercorso(punto{12, 8}, punto{12, 3}))
-	fmt.Println(esistePercorso(punto{12, 11}, punto{12, 2}))
-
+	if esistePercorso(partenza, arrivo) {
+		println("SI")
+	} else {
+		println("NO")
+	}
 }
