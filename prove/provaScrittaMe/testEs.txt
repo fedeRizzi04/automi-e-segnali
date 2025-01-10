@@ -1,0 +1,32 @@
+esempio 1:
+
+
+
+partenza := punto{3, 8}
+arrivo := punto{8, 5}
+//CONTROLLARE DIMENSIONE TABELLA CON NUMERI NEGATIVI
+fmt.Println(dimensioneTabella(partenza, arrivo))
+aggiungiPerimetro(2, 2, 6, 6)
+aggiungiPerimetro(5, 2, 6, 8)
+aggiungiPerimetro(4, 10, 12, 11)
+fmt.Println(esistePercorso(partenza, arrivo))
+fmt.Println(esistePercorso(punto{12, 8}, punto{12, 3}))
+fmt.Println(esistePercorso(punto{12, 11}, punto{12, 2}))
+
+
+
+
+//Prove di normalizzazione punti
+fmt.Println(dimensioneTabella(punto{-2, 1}, punto{-7, -3}))
+fmt.Println(dimensioneTabella(punto{-10, -10}, punto{-2, -14}))
+fmt.Println(dimensioneTabella(punto{-7, -3}, punto{-7, 4}))
+fmt.Println(dimensioneTabella(punto{-7, 3}, punto{9, 3}))
+
+fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, 1}, 1, 0, 0))
+fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, 1}, 1, 2, 3))
+fmt.Println()
+
+fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 1, 0))
+fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 1, 3))
+fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 0, 2))
+fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 0, 5))
