@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 type punto struct {
 	x, y int
@@ -40,7 +43,10 @@ func dimensioneTabella(punto1 punto, punto2 punto) (int, int) {
 	minx, maxx := min(punto1.x, punto2.x), max(punto1.x, punto2.x)
 	miny, maxy := min(punto1.y, punto2.y), max(punto1.y, punto2.y)
 
-	return maxy - miny + 1, maxx - minx + 1
+	colonne := int(math.Abs(float64(maxx-minx)) + 1)
+	righe := int(math.Abs(float64(maxy-miny)) + 1)
+	return righe, colonne
+
 }
 
 func signum(x int) int {
@@ -53,74 +59,90 @@ func signum(x int) int {
 	return 0
 }
 
-func direzioniPossibili(partenza punto, arrivo punto) (int, int) {
+func direzioni(partenza punto, arrivo punto) (int, int) {
 	dx := arrivo.x - partenza.x
 	dy := arrivo.y - partenza.y
 	return signum(dx), signum(dy)
-
 }
-
-func inizioTabella(dx int, dy int, n int, m int) (int, int) {
-	var startI, startJ int
-
-	if dx == -1 {
-		startJ = m - 1
-	} else {
-		startJ = 0
-	}
-
-	if dy == -1 {
-		startI = n - 1
-	} else {
-		startI = 0
-	}
-
-	return startI, startJ
-}
-
-func normalizzaEntrata(i int, j int, partenza punto, arrivo punto, dx int, dy int, n int, m int) punto {
-	var coordx, coordy int
-	if dx == -1 {
-		coordy = m - 1 - j + arrivo.y
-	} else {
-		coordy = j + partenza.y
-	}
-
-	if dy == -1 {
-		coordx = n - 1 - i + arrivo.x
-	} else {
-		coordx = i + partenza.x
-	}
-
-	return punto{coordx, coordy}
-
-}
-
-/*
-func esistePercorso(partenza punto, arrivo punto) bool {
-
-	n, m := dimensioneTabella(partenza, arrivo)
-	tabella := make([][]bool, n)
-	for i := 0; i < n; i++ {
-		tabella[i] = make([]bool, m)
-	}
-
-	dx, dy := direzioniPossibili(partenza, arrivo)
-	// ora bisogna normalizzare i punti negli indici della tabella
-	// questo varia in base a come si scorre la tabella (da sinistra a destra o viceversa) (o da sopra a sotto o viceversa)
-	//se dx = 1 allora si scorre da sinistra a destra, altrimenti da destra a sinistra
-	//se dy = 1 allora si scorre da sotto (basso indice y) a sopra (alto indice y), altrimenti da sopra a sotto
-	// se dx = 1 e dy = 1 allora si scorre da sinistra a destra e da sotto a sopra
-	// se dx = 1 e dy = -1 allora si scorre da sinistra a destra e da sopra a sotto
-	// se dx = -1 e dy = 1 allora si scorre da destra a sinistra e da sotto a sopra
-	// se dx = -1 e dy = -1 allora si scorre da destra a sinistra e da sopra a sotto
-
-	//da fare
-
-}
-*/
 
 var puntiConosciuti map[punto]string = make(map[punto]string)
+
+// con l'assunzione che il punto di partenza debba avere direzione dx = 1 o 0, percorriamo la tabella sempre da sinistra verso destra
+func esistePercorso(partenza punto, arrivo punto) bool {
+
+	righe, colonne := dimensioneTabella(partenza, arrivo)
+	_, diry := direzioni(partenza, arrivo)
+	partenzaRighe, finaleRighe := partenzaFineRighe(diry, righe) // in base alla direzione di y, determiniamo la riga di partenza e di arrivo. Se la direzione va verso il basso, si parte dalla riga più in alto, se no dalla riga più in basso
+
+	dp := make([][]bool, righe)
+	for i := range dp {
+		dp[i] = make([]bool, colonne)
+	}
+	dp[partenzaRighe][0] = true
+
+	for i := partenzaRighe; i != finaleRighe; i += diry {
+		for j := 0; j < colonne; j++ {
+			// se il punto corrente è un ostacolo, non è raggiungibile
+			if _, ok := puntiConosciuti[normalizzaEntrataTabella(partenza, arrivo, diry, i, j)]; ok {
+				dp[i][j] = false
+				continue
+			}
+			//per il punto di partenza non è necessario controllare se è raggiungibile da un percorso libero minimo a partire da esso, è già vero
+			if partenzaRighe == i && j == 0 {
+				continue
+			}
+			icontrollo := i - diry
+			//controllo se il punto sulla riga precedente è raggiungibile da un percoro libero minimo a partire dal punto di arrivo. Nelle prossime righe non è possibile avere un outOfBound nella slice per via della lazy evaluation sulla condizione
+			if icontrollo >= 0 && icontrollo < righe && icontrollo != i && dp[icontrollo][j] {
+				dp[i][j] = true
+				//se no provo col punto sulla colonna precedente
+			} else if j-1 >= 0 && j-1 < colonne && dp[i][j-1] {
+				dp[i][j] = true
+			} else {
+				//se non è raggiungibile da nessuno dei due punti precedenti, allora non è raggiungibile
+				dp[i][j] = false
+			}
+
+		}
+	}
+	finaleRighe = rigaRitornoDP(finaleRighe, righe)
+	return dp[finaleRighe][colonne-1]
+}
+
+func partenzaFineRighe(diry int, righe int) (int, int) {
+	var partenzaI int
+	var finaleI int
+	if diry == -1 {
+		partenzaI = righe - 1
+		finaleI = -1
+	} else {
+		partenzaI = 0
+		finaleI = righe
+	}
+	return partenzaI, finaleI
+}
+
+func rigaRitornoDP(finaleI int, righe int) int {
+	if finaleI == -1 {
+		finaleI = 0
+	} else {
+		finaleI = righe - 1
+	}
+	return finaleI
+}
+
+func normalizzaEntrataTabella(partenza punto, arrivo punto, dy int, i int, j int) punto {
+	xPunto := 0
+	yPunto := 0
+	if dy == 1 {
+		xPunto = j + partenza.x
+		yPunto = i + partenza.y
+	} else {
+		xPunto = j + partenza.x
+		yPunto = i + arrivo.y
+	}
+	return punto{xPunto, yPunto}
+}
 
 func main() {
 
@@ -128,10 +150,28 @@ func main() {
 	arrivo := punto{8, 5}
 	//CONTROLLARE DIMENSIONE TABELLA CON NUMERI NEGATIVI
 	fmt.Println(dimensioneTabella(partenza, arrivo))
-	fmt.Println(inizioTabella(1, -1, 4, 6))
 	aggiungiPerimetro(2, 2, 6, 6)
 	aggiungiPerimetro(5, 2, 6, 8)
 	aggiungiPerimetro(4, 10, 12, 11)
 
-	fmt.Println(normalizzaEntrata(3, 0, partenza, arrivo, 1, -1, 6, 4))
+	/*
+		fmt.Println(dimensioneTabella(punto{-2, 1}, punto{-7, -3}))
+		fmt.Println(dimensioneTabella(punto{-10, -10}, punto{-2, -14}))
+		fmt.Println(dimensioneTabella(punto{-7, -3}, punto{-7, 4}))
+		fmt.Println(dimensioneTabella(punto{-7, 3}, punto{9, 3}))
+
+		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, 1}, 1, 0, 0))
+		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, 1}, 1, 2, 3))
+		fmt.Println()
+
+		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 1, 0))
+		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 1, 3))
+		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 0, 2))
+		fmt.Println(normalizzaEntrataTabella(punto{-7, -3}, punto{-2, -4}, -1, 0, 5))
+	*/
+
+	fmt.Println(esistePercorso(partenza, arrivo))
+	fmt.Println(esistePercorso(punto{12, 8}, punto{12, 3}))
+	fmt.Println(esistePercorso(punto{12, 11}, punto{12, 2}))
+
 }
