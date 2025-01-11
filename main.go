@@ -39,7 +39,7 @@ type piano *struct {
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	piano := newPiano()
+	var p piano
 	/*
 		piano := crea()
 		automa(piano, 2, 1, "1")
@@ -62,14 +62,15 @@ func main() {
 		richiamo(piano, 5, 3, "1")
 		stampa(piano)
 	*/
-	automa(piano, 1, 2, "a")
-	ostacolo(piano, 1, 3, 4, 6)
-	ostacolo(piano, 3, 2, 4, 7)
-	stampa(piano)
-	fmt.Println(esistePercorso(piano, 5, 3, "a"))
 
 	for scanner.Scan() {
-		esegui(piano, scanner.Text())
+		str := scanner.Text()
+		com := strings.Fields(str)[0]
+		if com == "c" {
+			p = newPiano()
+		} else {
+			esegui(p, str)
+		}
 	}
 
 }
@@ -110,48 +111,6 @@ func (l *myListRettangoli) StampaRettangoli() {
 	}
 }
 
-// Interfaccia coda per la visita in ampiezza
-type Coda interface {
-	isEmpty() bool
-	enqueue(p punto, distanza int)
-	dequeue() (punto, int)
-}
-
-type NodoCoda struct {
-	punto    punto
-	distanza int
-	next     *NodoCoda
-}
-
-type MyCoda struct {
-	head *NodoCoda
-	tail *NodoCoda
-}
-
-func (c *MyCoda) isEmpty() bool {
-	return c.head == nil
-}
-
-func (c *MyCoda) enqueue(p punto, distanza int) {
-	n := &NodoCoda{p, distanza, nil}
-	if c.head == nil {
-		c.head = n
-	} else {
-		c.tail.next = n
-	}
-	c.tail = n
-}
-
-func (c *MyCoda) dequeue() (punto, int) {
-	p := c.head.punto
-	d := c.head.distanza
-	c.head = c.head.next
-	if c.head == nil {
-		c.tail = nil
-	}
-	return p, d
-}
-
 // FUNZIONI PER SPECIFICHE DI PROGETTAZIONE
 
 func esegui(p piano, s string) {
@@ -163,8 +122,6 @@ func esegui(p piano, s string) {
 	}
 
 	switch comandi[0] {
-	case "c":
-		crea(p)
 	case "s":
 		stato(p, a, b)
 	case "S":
@@ -181,7 +138,14 @@ func esegui(p piano, s string) {
 	case "p":
 		posizioni(p, comandi[1])
 	case "e":
-		if esistePercorso(p, a, b, comandi[3]) {
+		nomeAutoma := comandi[3]
+		pAutoma, esiste := p.automi[nomeAutoma]
+		if !esiste {
+			fmt.Println("NO")
+			break
+		}
+		p1, p2 := scegliPartenza(pAutoma, punto{a, b})
+		if nomeAutoma != "" && esistePercorso(p, p1, p2) {
 			fmt.Println("SI")
 		} else {
 			fmt.Println("NO")
@@ -212,13 +176,6 @@ func newPiano() piano {
 	}
 }
 
-func crea(p piano) {
-	p.automi = make(map[string]punto)
-	p.ostacoli = &myListRettangoli{}
-	p.puntiConosciuti = make(map[punto]string)
-	// Costo: O(1)
-}
-
 func stampa(p piano) {
 
 	//prima stampo gli automi:
@@ -232,32 +189,49 @@ func stampa(p piano) {
 	fmt.Println("]")
 }
 
+func presenzaErimuovi(p piano, n string) {
+	puntoPossibile, ok := p.automi[n]
+	if ok {
+		quanti, _ := strconv.Atoi(p.puntiConosciuti[puntoPossibile][1:])
+		quanti--
+		if quanti == 0 {
+			p.puntiConosciuti[puntoPossibile] = "E"
+		} else {
+			p.puntiConosciuti[puntoPossibile] = "A" + strconv.Itoa(quanti)
+		}
+	}
+}
+
 func automa(p piano, x int, y int, n string) {
 
 	punto := punto{x, y}
-	//controllo se si conosce già cosa c'è nel relativo punto
-	s, esiste := p.puntiConosciuti[punto]
+	// controllo se si conosce già cosa c'è nel punto di arrivo
+	str, esiste := p.puntiConosciuti[punto]
 	if esiste {
-		switch s {
+		switch string(str[0]) {
 		case "A":
-			p.puntiConosciuti[punto] = "E"
+			// se c'è un automa allora posso mettere sicuramente un automa nel punto di arrivo, aumentando il numero di automi in quel punto
+			quanti, _ := strconv.Atoi(str[1:])
+			quanti++
+			p.puntiConosciuti[punto] = "A" + strconv.Itoa(quanti)
+			// ora devo controllare se c'è un automa con lo stesso nome in un altro punto, se si devo rimuoverlo
+			presenzaErimuovi(p, n)
 			p.automi[n] = punto
 		case "E":
+			// se il punto di arrivo è vuoto allora posso mettere un automa in quel punto
+			presenzaErimuovi(p, n)
 			p.automi[n] = punto
-			p.puntiConosciuti[punto] = "A"
+			p.puntiConosciuti[punto] = "A1"
 		}
-		return
+		return // se c'è un ostacolo non faccio nulla
 	}
-	//se non si consoce bisogna per forza cercare
+
+	// se non si conosce cosa c'è nel punto di arrivo, allora bisogna controllare se c'è un ostacolo
 	if !p.ostacoli.ContienePunto(punto) {
+		presenzaErimuovi(p, n)
 		p.automi[n] = punto
-		p.puntiConosciuti[punto] = "A"
-	} else {
-		p.puntiConosciuti[punto] = "O"
+		p.puntiConosciuti[punto] = "A1"
 	}
-
-	// costo: O(r) con r = numero di rettangoli
-
 }
 
 // dato un nuovo rettangolo aggiunto, aggiunge i punti del perimetro di tale rettangolo alla mappa dei punti conosciuti
@@ -336,85 +310,109 @@ func direzioni(puntoAutoma punto, puntoArrivo punto) (int, int) {
 	return dx, dy
 }
 
-// Questa funzione aggiunge i vicini da considerare in un percorso di distanza minima. Se dx != 0, allora l'automa può muoversi in orizzontale, se dy != 0, allora l'automa può muoversi in verticale
-func aggiungiAdiacenti(dx int, puntoCorrente punto, p piano, coda *MyCoda, distanzaPunto int, dy int) {
-	if dx != 0 {
-		puntoAdiacente := punto{puntoCorrente.x + dx, puntoCorrente.y}
-		s := p.puntiConosciuti[puntoAdiacente]
-		if s != "O" {
-			coda.enqueue(puntoAdiacente, distanzaPunto+1)
-		}
+func max(a, b int) int {
+	if a > b {
+		return a
 	}
-	if dy != 0 {
-		puntoAdiacente := punto{puntoCorrente.x, puntoCorrente.y + dy}
-		s := p.puntiConosciuti[puntoAdiacente]
-		if s != "O" {
-			coda.enqueue(puntoAdiacente, distanzaPunto+1)
-		}
-	}
+	return b
 }
 
-// dato un punto di partenza, un punto di arrivo, un automa in posizione, le direzioni in cui l'automa può muoversi e la distanza minima tra il punto di partenza e di arrivo,
-// restituisce true se esiste un percorso libero di distanza minima tra i due punti. Un percorso è libero se non incontra ostacoli. Inoltre si possono incontrare ostacoli
-// che rappresentano solo punti del perimetro di un rettangolo, i quali sono stati aggiunti alla mappa dei punti conosciuti e quindi accessibili in tempo costante
-func bfs(p piano, puntoPartenza punto, puntoArrivo punto, dx int, dy int, distanzaD int) bool {
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
 
-	coda := &MyCoda{}
-	coda.enqueue(puntoPartenza, 0)
-	//visitati := make(map[Punto]bool)
-	for !coda.isEmpty() {
-		punto, distanzaPunto := coda.dequeue()
-		/*
-			//se il punto è già stato visitato, allora non lo visito di nuovo
-			if visitati[punto] {
+func dimensioneTabella(punto1 punto, punto2 punto) (int, int) {
+	minx, maxx := min(punto1.x, punto2.x), max(punto1.x, punto2.x)
+	miny, maxy := min(punto1.y, punto2.y), max(punto1.y, punto2.y)
+
+	colonne := int(math.Abs(float64(maxx-minx)) + 1)
+	righe := int(math.Abs(float64(maxy-miny)) + 1)
+	return righe, colonne
+
+}
+
+// con l'assunzione che il punto di partenza debba avere direzione dx = 1 o 0, percorriamo la tabella sempre da sinistra verso destra
+func esistePercorso(p piano, partenza punto, arrivo punto) bool {
+
+	righe, colonne := dimensioneTabella(partenza, arrivo)
+	_, diry := direzioni(partenza, arrivo)
+	partenzaRighe, finaleRighe := partenzaFineRighe(diry, righe) // in base alla direzione di y, determiniamo la riga di partenza e di arrivo. Se la direzione va verso il basso, si parte dalla riga più in alto, se no dalla riga più in basso
+
+	dp := make([][]bool, righe)
+	for i := range dp {
+		dp[i] = make([]bool, colonne)
+	}
+	dp[partenzaRighe][0] = true
+	if diry == 0 {
+		diry = 1 //in questo modo non va in loop il ciclo for successivo
+	}
+
+	for i := partenzaRighe; i != finaleRighe; i += diry {
+		for j := 0; j < colonne; j++ {
+			// se il punto corrente è un ostacolo, non è raggiungibile
+			if str := p.puntiConosciuti[normalizzaEntrataTabella(partenza, arrivo, diry, i, j)]; str == "O" {
+				dp[i][j] = false
 				continue
 			}
-			visitati[punto] = true
-		*/
-		if distanzaPunto == distanzaD && punto == puntoArrivo {
-			return true
-		}
-		//se la distanza di tale punto è uguale a quella di arrivo e non è il punto di arrivo, allora non visito i punti adiacenti
-		if distanzaPunto == distanzaD {
-			continue
-		}
-		//aggiungo i punti adiacenti
-		aggiungiAdiacenti(dx, punto, p, coda, distanzaPunto, dy)
+			//per il punto di partenza non è necessario controllare se è raggiungibile da un percorso libero minimo a partire da esso, è già vero
+			if partenzaRighe == i && j == 0 {
+				continue
+			}
+			icontrollo := i - diry
+			//controllo se il punto sulla riga precedente è raggiungibile da un percoro libero minimo a partire dal punto di arrivo. Nelle prossime righe non è possibile avere un outOfBound nella slice per via della lazy evaluation sulla condizione
+			if icontrollo >= 0 && icontrollo < righe && icontrollo != i && dp[icontrollo][j] {
+				dp[i][j] = true
+				//se no provo col punto sulla colonna precedente
+			} else if j-1 >= 0 && j-1 < colonne && dp[i][j-1] {
+				dp[i][j] = true
+			} else {
+				//se non è raggiungibile da nessuno dei due punti precedenti, allora non è raggiungibile
+				dp[i][j] = false
+			}
 
+		}
 	}
-	return false
-
+	finaleRighe = rigaRitornoDP(finaleRighe, righe)
+	return dp[finaleRighe][colonne-1]
 }
 
-// dato un punto di arrivo (x, y) e un automa in posizione (x1, y1), restituisce true se esiste un percorso libero di distanza minima tra i due punti. Un percorso è libero se non incontra
-// ostacoli
-func esistePercorso(p piano, x int, y int, s string) bool {
-
-	puntoAutoma, esiste := p.automi[s]
-	if !esiste {
-		return false
+// data la direzione sull'asse y del percorso minimo, restituisce la riga di partenza della matrice dp da cui partire e quella di arrivo (da mettere nella condizione sul for)
+func partenzaFineRighe(diry int, righe int) (int, int) {
+	var partenzaI int
+	var finaleI int
+	if diry == -1 {
+		partenzaI = righe - 1
+		finaleI = -1
+	} else {
+		partenzaI = 0
+		finaleI = righe
 	}
-	puntoArrivo := punto{x, y}
-	distanzaD := distanzaPunti(puntoAutoma, puntoArrivo)
-	if distanzaD == 0 {
-		return true
+	return partenzaI, finaleI
+}
+
+func rigaRitornoDP(finaleI int, righe int) int {
+	if finaleI == -1 {
+		finaleI = 0
+	} else {
+		finaleI = righe - 1
 	}
-	/*
-		if p.ostacoli.ContienePunto(puntoArrivo) {
-			p.puntiConosciuti[puntoArrivo] = "O"
-			return false
-		}
-	*/
+	return finaleI
+}
 
-	//calcolo la direzione in cui l'automa deve muoversi
-	dx, dy := direzioni(puntoAutoma, puntoArrivo)
-
-	//creo la coda per la visita in ampiezza. Ogni elemento della coda è un punto e la distanza D da tale punto a puntoAutoma. Mi fermo ad aggiungere elementi nella coda quando
-	//raggiungo punti con distanza distanzaD. Se arrivo a puntoArrivo, allora esiste un percorso libero, se no non esiste perchè ho fatto tutti i percorsi possibili di distanza minima e non ho trovato
-	//puntoArrivo
-
-	return bfs(p, puntoAutoma, puntoArrivo, dx, dy, distanzaD)
-
+func normalizzaEntrataTabella(partenza punto, arrivo punto, dy int, i int, j int) punto {
+	xPunto := 0
+	yPunto := 0
+	if dy == 1 {
+		xPunto = j + partenza.x
+		yPunto = i + partenza.y
+	} else {
+		xPunto = j + partenza.x
+		yPunto = i + arrivo.y
+	}
+	return punto{xPunto, yPunto}
 }
 
 func richiamo(p piano, x int, y int, s string) {
@@ -437,7 +435,9 @@ func richiamo(p piano, x int, y int, s string) {
 	automiDaSpostare := []string{}
 	min := -1
 	for _, nome := range nomiAutomi {
-		if esistePercorso(p, x, y, nome) {
+		//devo mettere come primo punto quello che deve andare a destra
+		p1, p2 := scegliPartenza(p.automi[nome], punto)
+		if esistePercorso(p, p1, p2) {
 			d := distanzaPunti(p.automi[nome], punto)
 			if min == -1 || d < min {
 				min = d
@@ -452,17 +452,35 @@ func richiamo(p piano, x int, y int, s string) {
 	spostaAutomi(automiDaSpostare, p, punto)
 }
 
-func spostaAutomi(automiDaSpostare []string, p piano, punto punto) {
-	for _, nome := range automiDaSpostare {
-		p.puntiConosciuti[p.automi[nome]] = "E"
-		p.automi[nome] = punto
-		p.puntiConosciuti[punto] = "A"
+func scegliPartenza(p1 punto, p2 punto) (punto, punto) {
+	dx, _ := direzioni(p1, p2)
+	if dx == 1 {
+		return p1, p2
 	}
+	return p2, p1
+}
+
+func spostaAutomi(automiDaSpostare []string, p piano, punto punto) {
+	var quanti int = 0
+	str := p.puntiConosciuti[punto]
+	if str != "" && string(str[0]) == "A" {
+		quanti, _ = strconv.Atoi(str[1:])
+	}
+	quanti += len(automiDaSpostare)
+
+	for _, nome := range automiDaSpostare {
+		presenzaErimuovi(p, nome)
+		p.automi[nome] = punto
+	}
+	if quanti > 0 {
+		p.puntiConosciuti[punto] = "A" + strconv.Itoa(quanti)
+	}
+
 }
 
 // dato un punto e una stringa rappresentante un richiamo, restituisce gli automi con prefisso dato
 func automiPrefisso(p piano, s string) []string {
-	nomiAutomi := []string{} // ogni volta questa slice viene svuotata e riempita con i nomi degli automi a distanza minima
+	nomiAutomi := []string{}
 	for k := range p.automi {
 		if strings.HasPrefix(k, s) {
 			nomiAutomi = append(nomiAutomi, k)
@@ -479,7 +497,7 @@ func stato(p piano, x int, y int) {
 	punto := punto{x, y}
 	s := p.puntiConosciuti[punto]
 	if s != "" {
-		fmt.Println(s)
+		fmt.Println(string(s[0]))
 		return
 	}
 
