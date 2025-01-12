@@ -14,25 +14,25 @@ type punto struct {
 	y int
 }
 
-type rettangolo struct {
+type ostacolo struct {
 	bassoSx punto // Punto in basso a sinistra
 	altoDx  punto // Punto in alto a destra
 }
 
-// lista di rettangoli
-type ListRettangoli interface {
+// lista di ostacoli
+type ListOstacoli interface {
 
-	// Aggiunge un rettangolo alla lista
-	AddRettangolo(r rettangolo)
-	// Dato un punto restituisce true se il punto è contenuto in almeno un rettangolo della lista
+	// Aggiunge un ostacolo alla lista
+	AddOstacolo(r ostacolo)
+	// Dato un punto restituisce true se il punto è contenuto in almeno un ostacolo della lista
 	ContienePunto(p punto) bool
 	//stampa i rettangoli
-	StampaRettangoli()
+	StampaOstacoli()
 }
 
 type piano *struct {
 	automi   map[string]punto
-	ostacoli ListRettangoli
+	ostacoli ListOstacoli
 	// Mappa che associa ai punti del piano visitati almeno una volta il relativo contenuto: A se contiene un automa, O se contiene un ostacolo, E se è vuoto
 	puntiConosciuti map[punto]string
 }
@@ -76,17 +76,17 @@ func main() {
 }
 
 // definizione del tipo implementante l'interfaccia ListRettangoli
-type NodoRett struct {
-	ret  *rettangolo
-	next *NodoRett
+type NodoOstacolo struct {
+	ret  *ostacolo
+	next *NodoOstacolo
 }
-type myListRettangoli struct {
-	head *NodoRett
-	tail *NodoRett
+type myListOstacoli struct {
+	head *NodoOstacolo
+	tail *NodoOstacolo
 }
 
-func (l *myListRettangoli) AddRettangolo(r rettangolo) {
-	n := &NodoRett{&r, nil}
+func (l *myListOstacoli) AddOstacolo(r ostacolo) {
+	n := &NodoOstacolo{&r, nil}
 	if l.head == nil {
 		l.head = n
 	} else {
@@ -95,7 +95,7 @@ func (l *myListRettangoli) AddRettangolo(r rettangolo) {
 	l.tail = n
 }
 
-func (l *myListRettangoli) ContienePunto(p punto) bool {
+func (l *myListOstacoli) ContienePunto(p punto) bool {
 	for n := l.head; n != nil; n = n.next {
 		//da ottimizzare
 		if p.x >= n.ret.bassoSx.x && p.x <= n.ret.altoDx.x && p.y >= n.ret.bassoSx.y && p.y <= n.ret.altoDx.y {
@@ -105,7 +105,7 @@ func (l *myListRettangoli) ContienePunto(p punto) bool {
 	return false
 }
 
-func (l *myListRettangoli) StampaRettangoli() {
+func (l *myListOstacoli) StampaOstacoli() {
 	for n := l.head; n != nil; n = n.next {
 		fmt.Printf("(%d,%d)(%d,%d)\n", n.ret.bassoSx.x, n.ret.bassoSx.y, n.ret.altoDx.x, n.ret.altoDx.y)
 	}
@@ -132,7 +132,7 @@ func esegui(p piano, s string) {
 		var c, d int
 		c, _ = strconv.Atoi(comandi[3])
 		d, _ = strconv.Atoi(comandi[4])
-		ostacolo(p, a, b, c, d)
+		aggiungiOstacolo(p, a, b, c, d)
 	case "r":
 		richiamo(p, a, b, comandi[3])
 	case "p":
@@ -158,7 +158,7 @@ func esegui(p piano, s string) {
 
 }
 
-func contiene(rett rettangolo, punto punto) bool {
+func contiene(rett ostacolo, punto punto) bool {
 	return (punto.x >= rett.bassoSx.x && punto.x <= rett.altoDx.x && punto.y >= rett.bassoSx.y && punto.y <= rett.altoDx.y)
 
 	// Costo: O(1)
@@ -167,11 +167,11 @@ func contiene(rett rettangolo, punto punto) bool {
 func newPiano() piano {
 	return &struct {
 		automi          map[string]punto
-		ostacoli        ListRettangoli
+		ostacoli        ListOstacoli
 		puntiConosciuti map[punto]string
 	}{
 		automi:          make(map[string]punto),
-		ostacoli:        &myListRettangoli{},
+		ostacoli:        &myListOstacoli{},
 		puntiConosciuti: make(map[punto]string),
 	}
 }
@@ -185,7 +185,7 @@ func stampa(p piano) {
 	}
 	fmt.Println(")")
 	fmt.Println("[")
-	p.ostacoli.StampaRettangoli()
+	p.ostacoli.StampaOstacoli()
 	fmt.Println("]")
 }
 
@@ -234,7 +234,7 @@ func automa(p piano, x int, y int, n string) {
 	}
 }
 
-// dato un nuovo rettangolo aggiunto, aggiunge i punti del perimetro di tale rettangolo alla mappa dei punti conosciuti
+// dato un nuovo ostacolo aggiunto, aggiunge i punti del perimetro di tale ostacolo alla mappa dei punti conosciuti
 func aggiungiPerimetro(p piano, x0 int, y0 int, x1 int, y1 int) {
 	//aggiunta dei lati orizzontali
 	for i := x0; i <= x1; i++ {
@@ -251,18 +251,18 @@ func aggiungiPerimetro(p piano, x0 int, y0 int, x1 int, y1 int) {
 	// Costo: O(n+m) con n = x1-x0 e m = y1-y0
 }
 
-func ostacolo(p piano, x0 int, y0 int, x1 int, y1 int) {
+func aggiungiOstacolo(p piano, x0 int, y0 int, x1 int, y1 int) {
 	p1 := punto{x0, y0}
 	p2 := punto{x1, y1}
-	rett := rettangolo{p1, p2}
+	rett := ostacolo{p1, p2}
 	for _, punto := range p.automi {
 		if contiene(rett, punto) {
 			return
 		}
 	}
 
-	p.ostacoli.AddRettangolo(rett)
-	//Aggiungo i punti del perimetro del rettangolo poichè un automa, dato un punto di arrivo, può scontrarsi solamente con i punti del perimetro degli ostacoli
+	p.ostacoli.AddOstacolo(rett)
+	//Aggiungo i punti del perimetro del ostacolo poichè un automa, dato un punto di arrivo, può scontrarsi solamente con i punti del perimetro degli ostacoli
 	aggiungiPerimetro(p, x0, y0, x1, y1)
 
 	// Costo: O(a + n + m) con a = numero di automi, n = x1-x0 e m = y1-y0
