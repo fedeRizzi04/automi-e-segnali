@@ -287,7 +287,6 @@ func posizioni(p piano, s string) {
 
 func automiPrefisso(p piano, s string) []string {
 	nomiAutomi := []string{}
-	fmt.Println(len(nomiAutomi), cap(nomiAutomi))
 	rangeAutomiPrefisso(p, s, func(k string, p punto) {
 		nomiAutomi = append(nomiAutomi, k)
 	})
@@ -449,8 +448,12 @@ func richiamo(p piano, x int, y int, s string) {
 	for _, nome := range nomiAutomi {
 		//devo mettere come primo punto quello che deve andare a destra
 		p1, p2 := scegliPartenza(p.automi[nome], punto)
+		d := distanzaPunti(p1, p2)
+		// se la distanza tra l'automa e il punto di richiamo è maggiore della distanza minima trovata finora, non ha senso calcolare l'esistenza di un percorso
+		if min != -1 && d > min {
+			continue
+		}
 		if esistePercorso(p, p1, p2) {
-			d := distanzaPunti(p.automi[nome], punto)
 			if min == -1 || d < min {
 				min = d
 				automiDaSpostare = []string{nome}
