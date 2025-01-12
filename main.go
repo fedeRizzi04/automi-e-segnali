@@ -269,17 +269,29 @@ func ostacolo(p piano, x0 int, y0 int, x1 int, y1 int) {
 
 }
 
-func posizioni(p piano, s string) {
-
-	fmt.Println("(")
+func rangeAutomiPrefisso(p piano, s string, azione func(string, punto)) {
 	for k, v := range p.automi {
 		if strings.HasPrefix(k, s) {
-			fmt.Printf("%s: %d,%d\n", k, v.x, v.y)
+			azione(k, v)
 		}
 	}
-	fmt.Println(")")
+}
 
-	// Costo: O(a * |s|) con a = numero di automi e |s| = lunghezza della stringa s
+func posizioni(p piano, s string) {
+	fmt.Println("(")
+	rangeAutomiPrefisso(p, s, func(k string, v punto) {
+		fmt.Printf("%s: %d,%d\n", k, v.x, v.y)
+	})
+	fmt.Println(")")
+}
+
+func automiPrefisso(p piano, s string) []string {
+	nomiAutomi := []string{}
+	fmt.Println(len(nomiAutomi), cap(nomiAutomi))
+	rangeAutomiPrefisso(p, s, func(k string, p punto) {
+		nomiAutomi = append(nomiAutomi, k)
+	})
+	return nomiAutomi
 }
 
 func distanzaPunti(p1 punto, p2 punto) int {
@@ -476,20 +488,6 @@ func spostaAutomi(automiDaSpostare []string, p piano, punto punto) {
 		p.puntiConosciuti[punto] = "A" + strconv.Itoa(quanti)
 	}
 
-}
-
-// dato un punto e una stringa rappresentante un richiamo, restituisce gli automi con prefisso dato
-func automiPrefisso(p piano, s string) []string {
-	nomiAutomi := []string{}
-	for k := range p.automi {
-		if strings.HasPrefix(k, s) {
-			nomiAutomi = append(nomiAutomi, k)
-		}
-	}
-	return nomiAutomi
-
-	// Costo: O(a * |s|) con a = numero di automi e |s| = lunghezza della stringa s
-	// spazio: O(a) nel caso peggiore con a = numero di automi
 }
 
 func stato(p piano, x int, y int) {
