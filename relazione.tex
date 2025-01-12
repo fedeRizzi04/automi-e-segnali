@@ -1,0 +1,76 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[utf8]{inputenc} 
+\usepackage[T1]{fontenc}   
+\usepackage[italian]{babel} 
+\usepackage{amsmath}        
+\usepackage{amssymb}        
+\usepackage{geometry}   
+\usepackage{parskip}
+\geometry{a4paper, margin=2cm}
+\usepackage{listings}       
+\usepackage{xcolor}         
+
+\lstset{
+    language=Go,           
+    basicstyle=\ttfamily\small, 
+    keywordstyle=\color{blue}\bfseries, 
+    commentstyle=\color{green}, 
+    stringstyle=\color{red},   
+    numbers=left,             
+    numberstyle=\tiny,        
+    stepnumber=1,              
+    breaklines=true,           
+    frame=single,              
+    captionpos=b               
+}
+\setlength{\parindent}{0pt}
+
+
+\title{Laboratorio di Algoritmi e Strutture Dati \\ Relazione del progetto "Automi e segnali"}
+\author{Federico Andrea Rizzi}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Introduzione}
+
+In questo documento vengono presentate le scelte fatte in merito all'approccio, alla modellazione e alla risoluzione del problema sia per quanto concerne le strutture dati utilizzate che agli algoritmi implementati. Il file \texttt{zip} consegnato contiene:
+
+\begin{itemize}
+    \item il file \texttt{.go} con nome "main.go" contenente l'intero codice sorgente
+
+    \item la relazione (questo file) in formato \texttt{pdf} con nome "relazione.pdf"
+
+    \item TODO: test
+\end{itemize}
+
+
+\section{Considerazioni sul problema}
+
+Le entità principali da modellare sul piano (oltre al piano stesso) sono gli \textbf{automi} e gli \textbf{ostacoli}. Gli aspetti fondamentali sono:
+
+\begin{itemize}
+    \item ogni automa ha un nome univoco sull'alfabeto $\{0, 1\}$ e si trova in un punto del piano
+
+    \item su un punto (in un dato momento) possono giacere o un insieme di automi o un insieme di ostacoli 
+
+    \item non è detto che su ogni punto del piano (i quali punti sono infiniti) sia presente o un automa o un ostacolo
+\end{itemize} 
+
+Di cruciale importanza è la richiesta di sapere, dato un punto $(x, y)$ e il nome $\eta$ di un automa, se esiste un percorso libero da $P(\eta)$ a $(x, y)$ di lunghezza $D(P(\eta), (x, y))$. E' la richiesta più complicata da risolvere (in quanto i richiami si basano su di essa) e si possono fare le seguenti considerazioni:
+
+\begin{itemize}
+    \item poichè si richiede l'esistenza di un percorso libero con lunghezza pari alla lunghezza minima di un percorso tra i due punti, i passi unitari possono essere fatti seguendo al massimo \textit{2} direzioni sulle \textit{4} possibili. Per esempio, un percorso di distanza minima tra il punto $(2, 2)$ e il punto $(5, 5)$ può essere composto, partendo da $(2, 2)$ solo da passi unitari in cui si incrementa di \textit{1} la coordinata \textit{x} o si incrementa di \textit{1} la coordinata \textit{y} (non è mai possibile decrementare tali coordinate, o non si avrebbe un percorso di distanza minima)
+
+    \item partendo da un automa è sicuro che il punto di partenza non si trovi all'interno dell'area di un ostacolo. Nella simulazione di un percorso tra un automa e un punto possiamo affermare che tale percorso non è libero non appena incontra un punto che si trova sul perimetro di un ostacolo. Può essere quindi interessante memorizzare i punti che si trovano sul perimetro degli ostacoli
+\end{itemize}
+
+\section{Modellazione e strutture dati utilizzate}
+
+%% TODO: sulla base delle considerazioni fatte, ho modellato così le entità e non così per questi vantaggi e per non avere questi svantaggi
+
+\end{document}
