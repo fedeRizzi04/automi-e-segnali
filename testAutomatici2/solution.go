@@ -139,7 +139,11 @@ func esegui(p piano, s string) {
 		posizioni(p, comandi[1])
 	case "e":
 		nomeAutoma := comandi[3]
-		pAutoma := p.automi[nomeAutoma]
+		pAutoma, esiste := p.automi[nomeAutoma]
+		if !esiste {
+			fmt.Println("NO")
+			break
+		}
 		p1, p2 := scegliPartenza(pAutoma, punto{a, b})
 		if nomeAutoma != "" && esistePercorso(p, p1, p2) {
 			fmt.Println("SI")
@@ -265,17 +269,28 @@ func ostacolo(p piano, x0 int, y0 int, x1 int, y1 int) {
 
 }
 
-func posizioni(p piano, s string) {
-
-	fmt.Println("(")
+func rangeAutomiPrefisso(p piano, s string, azione func(string, punto)) {
 	for k, v := range p.automi {
 		if strings.HasPrefix(k, s) {
-			fmt.Printf("%s: %d,%d\n", k, v.x, v.y)
+			azione(k, v)
 		}
 	}
-	fmt.Println(")")
+}
 
-	// Costo: O(a * |s|) con a = numero di automi e |s| = lunghezza della stringa s
+func posizioni(p piano, s string) {
+	fmt.Println("(")
+	rangeAutomiPrefisso(p, s, func(k string, v punto) {
+		fmt.Printf("%s: %d,%d\n", k, v.x, v.y)
+	})
+	fmt.Println(")")
+}
+
+func automiPrefisso(p piano, s string) []string {
+	nomiAutomi := []string{}
+	rangeAutomiPrefisso(p, s, func(k string, p punto) {
+		nomiAutomi = append(nomiAutomi, k)
+	})
+	return nomiAutomi
 }
 
 func distanzaPunti(p1 punto, p2 punto) int {
@@ -433,8 +448,12 @@ func richiamo(p piano, x int, y int, s string) {
 	for _, nome := range nomiAutomi {
 		//devo mettere come primo punto quello che deve andare a destra
 		p1, p2 := scegliPartenza(p.automi[nome], punto)
+		d := distanzaPunti(p1, p2)
+		// se la distanza tra l'automa e il punto di richiamo è maggiore della distanza minima trovata finora, non ha senso calcolare l'esistenza di un percorso
+		if min != -1 && d > min {
+			continue
+		}
 		if esistePercorso(p, p1, p2) {
-			d := distanzaPunti(p.automi[nome], punto)
 			if min == -1 || d < min {
 				min = d
 				automiDaSpostare = []string{nome}
@@ -474,27 +493,12 @@ func spostaAutomi(automiDaSpostare []string, p piano, punto punto) {
 
 }
 
-// dato un punto e una stringa rappresentante un richiamo, restituisce gli automi con prefisso dato
-func automiPrefisso(p piano, s string) []string {
-	nomiAutomi := []string{}
-	for k := range p.automi {
-		if strings.HasPrefix(k, s) {
-			nomiAutomi = append(nomiAutomi, k)
-		}
-	}
-	return nomiAutomi
-
-	// Costo: O(a * |s|) con a = numero di automi e |s| = lunghezza della stringa s
-	// spazio: O(a) nel caso peggiore con a = numero di automi
-}
-
 func stato(p piano, x int, y int) {
 
 	punto := punto{x, y}
 	s := p.puntiConosciuti[punto]
 	if s != "" {
-		//fmt.Println(string(s[0]))
-		fmt.Println(s)
+		fmt.Println(string(s[0]))
 		return
 	}
 
