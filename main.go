@@ -347,7 +347,10 @@ func dimensioneTabella(punto1 punto, punto2 punto) (int, int) {
 
 // con l'assunzione che il punto di partenza debba avere direzione dx = 1 o 0, percorriamo la tabella sempre da sinistra verso destra
 func esistePercorso(p piano, partenza punto, arrivo punto) bool {
-
+	// il percorso non sarebbe di distanza al minimo 1
+	if partenza == arrivo {
+		return false
+	}
 	righe, colonne := dimensioneTabella(partenza, arrivo)
 	_, diry := direzioni(partenza, arrivo)
 	partenzaRighe, finaleRighe := partenzaFineRighe(diry, righe) // in base alla direzione di y, determiniamo la riga di partenza e di arrivo. Se la direzione va verso il basso, si parte dalla riga più in alto, se no dalla riga più in basso
@@ -436,7 +439,7 @@ func richiamo(p piano, x int, y int, s string) {
 	}
 	//se non conosco cosa c'è devo vedere se c'è un ostacolo o meno
 	if str == "" && p.ostacoli.ContienePunto(punto) {
-		p.puntiConosciuti[punto] = "O"
+		// p.puntiConosciuti[punto] = "O"
 		return
 	}
 
@@ -504,7 +507,7 @@ func stato(p piano, x int, y int) {
 
 	if p.ostacoli.ContienePunto(punto) {
 		fmt.Println("O")
-		p.puntiConosciuti[punto] = "O"
+		//p.puntiConosciuti[punto] = "O"
 	} else {
 		fmt.Println("E")
 		p.puntiConosciuti[punto] = "E"
