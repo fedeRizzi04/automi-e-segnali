@@ -64,13 +64,128 @@ Le entità principali da modellare sul piano (oltre al piano stesso) sono gli \t
 Di cruciale importanza è la richiesta di sapere, dato un punto $(x, y)$ e il nome $\eta$ di un automa, se esiste un percorso libero da $P(\eta)$ a $(x, y)$ di lunghezza $D(P(\eta), (x, y))$. E' la richiesta più complicata da risolvere (in quanto i richiami si basano su di essa) e si possono fare le seguenti considerazioni:
 
 \begin{itemize}
-    \item poichè si richiede l'esistenza di un percorso libero con lunghezza pari alla lunghezza minima di un percorso tra i due punti, i passi unitari possono essere fatti seguendo al massimo \textit{2} direzioni sulle \textit{4} possibili. Per esempio, un percorso di distanza minima tra il punto $(2, 2)$ e il punto $(5, 5)$ può essere composto, partendo da $(2, 2)$ solo da passi unitari in cui si incrementa di \textit{1} la coordinata \textit{x} o si incrementa di \textit{1} la coordinata \textit{y} (non è mai possibile decrementare tali coordinate, o non si avrebbe un percorso di distanza minima)
+    \item poichè si richiede l'esistenza di un percorso libero con lunghezza pari alla lunghezza minima di un percorso tra i due punti, i passi unitari possono essere fatti seguendo al massimo \textit{2} direzioni sulle \textit{4} possibili. Per esempio, un percorso di distanza minima tra il punto $(2, 2)$ e il punto $(5, 5)$ può essere composto, partendo da $(2, 2)$, solo da passi unitari in cui si incrementa di \textit{1} la coordinata \textit{x} o si incrementa di \textit{1} la coordinata \textit{y} (non è mai possibile decrementare tali coordinate, o non si avrebbe un percorso di distanza minima)
 
     \item partendo da un automa è sicuro che il punto di partenza non si trovi all'interno dell'area di un ostacolo. Nella simulazione di un percorso tra un automa e un punto possiamo affermare che tale percorso non è libero non appena incontra un punto che si trova sul perimetro di un ostacolo. Può essere quindi interessante memorizzare i punti che si trovano sul perimetro degli ostacoli
 \end{itemize}
 
 \section{Modellazione e strutture dati utilizzate}
 
-%% TODO: sulla base delle considerazioni fatte, ho modellato così le entità e non così per questi vantaggi e per non avere questi svantaggi
+Sulla base delle considerazioni fatte e delle operazioni da realizzare è possibile scartare a priori alcune modellazioni possibili delle entità del problema. In particolare si può considerare inefficiente la rappresentazione del piano attraverso una matrice che contenga una corrispondenza tra un punto e l'entità presente correntemente sul piano in tale punto (un automa, un ostacolo o nulla). Questo perchè il piano è potenzialmente infinito e la minima porzione di esso che contiene tutti gli automi e gli ostacoli presenti può essere molto grande. Inoltre per rappresentare un possibile piano con un automa nel punto $(-1000, -1000)$ e un automa nel punto $(1000, 1000)$ verrebbe richiesta una matrice $2001 \times 20001$, il che è inefficiente in termini di spazio. \\
+Per quanto riguarda gli ostacoli non è necessario memorizzare tutti i punti all'interno della loro area, in quanto pochissime operazioni gioverebbero di tale scelta (solo l'operazione di \textit{stato} dato un punto, che troverebbe, se tale punto è interno all'ostacolo, risposta in tempo costante). In particolare un ostacolo è stato rappresentato in questo modo:
+
+
+\begin{lstlisting}[language=Go]
+type punto struct {
+	x int
+	y int
+}
+type ostacolo struct {
+	bassoSx punto 
+	altoDx  punto
+}
+\end{lstlisting}
+
+La struttura \textit{punto} contiene le coordinate \textit{x} ed \textit{y} di un punto del piano, mentre la struttura \textit{ostacolo} contiene le coordinate del vertice in basso a sinistra e del vertice in alto a destra di un ostacolo. Dato un ostacolo \textit{R} e un punto \textit{P} la richiesta di sapere se \textit{P} è contenuto in \textit{R} viene fatta in tempo $O(1)$. \\
+Per quanto riguarda l'insieme di ostacoli presenti in un piano è stato definito un tipo di dato astratto:
+
+\begin{lstlisting}[language=Go]
+type ListOstacoli interface {
+	AddOstacolo(r ostacolo)
+	ContienePunto(p punto) bool
+	StampaOstacoli()
+}
+\end{lstlisting}
+
+Tale tipo di dati rappresenta una lista di ostacoli in grado di eseguire le seguenti operazioni:
+
+\begin{itemize}
+    \item \texttt{AddOstacolo:} dato un ostacolo come parametro, lo aggiunge alla lista
+
+    \item \texttt{ContienePunto:} dato un punto come parametro, restituisce \textit{true} se tale punto è contenuto in almeno un ostacolo della lista, \textit{false} altrimenti
+
+    \item \texttt{StampaOstacoli:} stampa gli ostacoli presenti nella lista
+\end{itemize}
+
+Queste operazioni sono tutte e sole quelle che un insieme di ostacoli deve saper fare per rispondere al problema (per esempio, non è richiesto che un ostacolo possa essere eliminato). Tale tipo di dato astratto è stato implementato mediante l'utilizzo di una lista concatenata, con puntatore alla testa e alla coda. Questo permette di avere operazioni di inserimento in tempo $O(1)$. L'unico punto a sfavore è che le altre due operazioni, dato \textit{n} il numero di ostacoli, costano $O(n)$. Ho cercato di trovare un ordinamento possibile per gli ostacoli, in base a qualche tipo di parametro (ad esempio coordinate o distanza rispetto a un punto dato) per avere una ricerca logaritmica rispetto al numero di ostacoli ma non sono riuscito. Potrebbe essere un miglioramento possibile, ma l'inserimento avrebbe costo $O(n)$. 
+
+A questo punto, per modellare l'intero piano, con tutte le entità del problema, è stata scelta la seguente soluzione:
+
+\begin{lstlisting}[language=Go]
+type piano *struct {
+	automi   map[string]punto
+	ostacoli ListOstacoli
+	puntiConosciuti map[punto]string
+}
+\end{lstlisting}
+
+Innanzitutto il piano è rappresentato da un puntatore ad una struttura, questo per facilitare il passaggio per parametro di esso a funzioni (in quanto in Go le strutture verrebbero passate per copia come parametro), e le eventuali modifiche saranno riflesse su di esso. Gli automi sono stati rappresentati con una mappa che ha per chiave una stringa che rappresenta il loro nome univoco, e il valore è un punto che rappresenta la loro posizione nel piano. Questo permette, dato il nome di un automa, di avere accesso alla sua posizione in tempo costante, e tale funzionalità è utile a molte operazioni (come l'esistenza di un percorso). Gli ostacoli sono rappresentati dal tipo di dato astratto \textit{ListOstacoli} presentato precedentemente, che verrà implementato tramite una lista concatenata, come spiegato prima. Ogni nodo della lista concatenata rappresenta un ostacolo presente sul piano. Da notare che, nel caso venisse trovato un possibile ordinamento degli ostacoli per avere delle ricerche logaritmiche in base al numero di essi, basterebbe implementare l'interfaccia con un tipo di dati concreto e inizializzare il piano utilizzando tale tipo, tutte le operazioni continuerebbero a funzionare. 
+
+Il piano viene rappresentato utilizzando una struttura dati aggiuntiva oltre a quelle per modellare automi e ostacoli. Essa ha per nome \texttt{puntiConosciuti} ed è una mappa che ha per chiave un punto e per valore una stringa. L'intento di tale struttura è memorizzare i punti conosciuti del piano di cui si conosce l'entità che giace su di essi, in modo tale da sfruttare tali informazioni per implementare le operazioni richieste. In particolare:
+
+\begin{itemize}
+    \item Quando viene aggiunto un automa in un punto del piano, bisognerà aggiornare tale struttura dati. Dato un punto del piano, se su di esso giace uno o più automi, allora la chiave rappresentata da tale punto, nella struttura, avrà per valore $Ax$, dove \textit{x} indica il numero di automi giacenti su tale punto
+
+    \item Quando viene aggiunto un ostacolo, la struttura conterrà tutti una entry per ogni punto del perimetro di tale ostacolo. In particolare tutti i punti del perimetro dell'ostacolo saranno memorizzati nella struttura e avranno per valore la stringa "O". Questo permette di avere accesso ai punti del perimetro degli ostacoli in tempo $O(1)$. Come detto in precedenza, se viene cercata l'esistenza di un percorso libero con distanza minima tra un automa e un punto, è certo che nella simulazione di un percorso, se esso va contro un punto del perimetro di un ostacolo, si può dire che non è libero. Sicuramente un percorso andrà prima a "sbattere" contro un punto di un perimetro di un ostacolo che su un punto interno all'area di un ostacolo
+
+
+    \item Quando viene richiesto lo stato di un punto del piano e si scopre che esso è vuoto, nella struttura verrà memorizzata tale informazione. Quindi se viene richiesto lo stato del punto $(5,3)$ del piano e su di esso non giace nè un automa nè un ostacolo, la struttura avrà una entry con chiave il punto $(5, 3)$ e valore la stringa "E"
+\end{itemize}
+
+Viene introdotta della ridondanza di informazioni, poichè dato il vertice in basso a sinistra e il vertice in alto a destra di un ostacolo è possibile sapere tutti i punti compresi nell'area di tale ostacolo. Però, per sapere tali informazioni per ogni ostacolo il tempo impiegato è proporzionale al numero di ostacoli, mentre con l'introduzione di questa struttura, per i punti di cui è interessante sapere se giacciono su un ostacolo, il tempo impiegato è costante (questo ridurrà moltissimo il tempo richiesto per l'operazione di esistenza di un percorso tra un punto e un automa e quindi anche quella di \textit{richiamo}). Anche gli automi sono rappresentati in maniera ridondante, ma questo permette, di sapere in tempo costante se in un punto del piano giace un automa (e questo è richiesto per esempio dall'operazione di \textit{stato}), senza dover scorrere tutti gli automi presenti. \\
+Inoltre se un utente richiede lo stato di moltissimi punti del piano, ed essi sono vuoti (non giace nessuna entità) la struttura memorizzerà tutte queste informazioni. Quello che ci si aspetta, normalmente, è che un utente richieda lo stato di un punto del piano per sapere se può effettuare l'inserimento di un automa. La memorizzazione del fatto che un punto sia vuoto serve proprio a questo: quando poi l'utente richiederà l'inserimento di un automa non bisognerà ricontrollare se il punto scelto per esso giace su degli ostacoli, ma si può sapere in tempo costante (se si scopre che gli utenti richiedono lo stato di molti punti senza la finalità di aggiungere un automa o un ostacolo giacente su di essi sarà più utile non memorizzare lo stato di punti vuoti). Naturalmente queste informazioni necessitano di essere coerenti tra di loro.
+
+
+\section{Operazioni e costi}
+
+In seguito verrà discussa l'implementazione degli algoritmi per risolvere le operazioni richieste, con i relativi costi. 
+
+
+\subsection{stampa}
+
+Questa operazione viene implementata dall'omonima funzione e si occupa di stampare l'elenco degli automi seguito dall'elenco degli ostacoli secondo il formato specificato nelle specifiche di implementazione. A tal proposito è necessario iterare tutti gli elementi della mappa \texttt{automi} e stamparne nome e coordinate tramite una funzione \texttt{Println} del package \texttt{fmt}, che si può assumere abbia costo $O(1)$ in quanto generalmente la stringa da stampare è molto corta (verrà fatta tale assunzione ogni volta che è presente una funzione di stampa). Inoltre è necessario stampare le coordinate di tutti gli ostacoli, e quindi utilizzare il metodo \texttt{StampaOstacoli}, il quale dovrà scorrere tutti gli ostacoli presenti in quanto la lista di ostacoli è una lista concatenata. \\
+\textbf{Tempo:} il tempo necessario per eseguire tale funzione, dato \textit{n} il numero di automi nel piano e \textit{m} il numero di ostacoli è $O(n + m)$.\\
+\textbf{Spazio:} non è previsto l'uso di spazio aggiuntivo rispetto al piano passato come parametro, quindi lo spazio usato è $O(1)$. 
+
+
+\subsection{ostacolo}
+
+Questa operazione, specificati i vertici in basso a sinistra e in alto a destra, permette di creare un ostacolo sul piano se esso non contiene punti su cui giacciono automi. Questa operazione è implementata dalla funzione \texttt{aggiungiOstacolo} e quello che occorre fare è:
+
+\begin{itemize}
+    \item Iterare tutti gli automi nel piano (attraverso la mappa che li rappresenta) e verificare che nessun automa giace sull'area su cui si vuole posizionare l'ostacolo. Data la posizione di un automa questa verifica si fa in tempo costante grazie alla funzione \texttt{contiene}. Il costo è quindi relativo all'iterazione degli automi nel piano, quindi sia \textit{a} il numero di automi il costo in termini di tempo di questa parte è $O(a)$
+
+    \item Se l'area in cui si vuole collocare l'ostacolo non contiene alcun automa, bisogna aggiungere l'ostacolo alla lista di ostacoli del piano. Questo inserimento è fatto in tempo $O(1)$ per via dell'uso di una lista concatenata con puntatore alla coda
+
+
+    \item Una volta aggiunto l'ostacolo alla lista, per mantenere la coerenza su quanto detto sulla struttura \texttt{puntiConosciuti} del piano, è necessario aggiungere i punti del perimetro di tale ostacolo ai punti conosciuti del piano, marcandoli come punti su cui giace un ostacolo. Siano $P = (x_0, y_0)$ e $Q = (x_1, y_1)$ rispettivamente il vertice in basso a sinistra e il vertice in alto a destra dell'ostacolo, allora si definisce $n = x_1 - x_0$ e $m = y_1 - y_0$ e il costo in termini di tempo di quanto detto è quindi $O(n + m)$
+\end{itemize}
+
+\textbf{Tempo:} in base a quanto spiegato il costo in termini di tempo di questa operazione è $O(a + n + m)$.\\
+\textbf{Spazio:} vengono usate variabili di supporto per creare due punti e un rettangolo. Il costo in spazio è $O(1)$. 
+
+\subsection{posizioni}
+
+Questa operazione, specificato un prefisso, si occupa di stampare la posizione degli automi nel piano con prefisso dato. Tale operazione viene implementata dall'omonima funzione e prevede lo scorrimento di tutti gli automi nel piano, grazie alla struttura \texttt{automi} del piano, e per ogni automa viene controllato se ha il nome con prefisso dato. Tale verifica viene fatta grazie alla funzione \texttt{HasPrefix} del package \texttt{strings} il cui costo in termini di tempo è dato dalla lunghezza del prefisso nel caso peggiore. \\
+\textbf{Tempo:} sia $a$ il numero di automi presenti nel piano e $n$ la lunghezza del prefisso, allora il costo di questa operazione in termini di tempo è $O(a \cdot n)$.\\
+\textbf{Spazio:} non viene utilizzato spazio aggiuntivo, quindi il costo è $O(1)$.
+
+
+\subsection{stato}
+
+Tale operazione, date le coordinate di un punto del piano, si occupa di stampare \textit{"A"} se sul punto giace un automa, \textit{"O"} se sul punto giace un ostacolo \textit{"E"} altrimenti. Questa operazione viene implementata dall'omonima funzione e viene controllato se nella struttura \texttt{puntiConosciuti} è presente una entry che ha per chiave il punto con coordinate specificate dall'utente. Se questo è vero la risposta viene data in tempo $O(1)$. Generalmente questo succede quando la richiesta viene fatta su un punto su cui giace un automa o il perimetro di un ostacolo.\\
+Se tale entry non è presente, allora bisogna iterare su tutti gli ostacoli presenti e capire se almeno uno di tali ostacoli contiene il punto specificato. \\
+\textbf{Tempo:} nel caso peggiore bisogna, come detto prima, iterare su tutti gli ostacolo. Sia $n$ il numero di ostacoli, il costo in termini di tempo di questa operazione è $O(n)$.\\
+\textbf{Spazio:} vengono utilizzate due variabili aggiuntive di supporto, il costo è $O(1)$. 
+
+\subsection{automa}
+
+Questa operazione, specificato il nome di un automa e il punto su cui posizionarlo, lo posiziona nel piano se in tale punto non giace già un ostacolo (se l'automa esiste già viene riposizionato). Essa viene implementata dall'omonima funzione e viene controllato se si conosce se nel piano in tale punto è presente un automa o non giace nulla (tramite la struttura \texttt{puntiConosciuti}). Se è questo il caso vengono aggiornate tutte le strutture per mantenere la coerenza di dati e posizionato l'automa nel punto. Invece se si sa che su tale punto giace un ostacolo non viene fatto nulla. Tutte le funzioni e istruzioni eseguite fino a questo punto costano tempo $O(1)$. Nel caso in cui non si conosce se giace o meno un automa, un ostacolo o nulla su tale punto, è necessario iterare tutti gli ostacoli e controllare se almeno uno di essi contiene il punto su cui si vuole posizionare l'automa. \\ 
+\textbf{Tempo:} il tempo nel caso peggiore, dato \textit{n} il numero di ostacoli è $O(n)$ ed esso si presenta quando non si conosce tramite la struttura \texttt{puntiConosciuti} se sul punto specificato giace o meno un automa o un ostacolo. \\
+\textbf{Spazio:} vengono usate delle variabili di supporto, ma esse sono in numero sempre uguale e occupano lo stesso spazio indipendentemente dalla lunghezza dell'istanza in input. Il costo in spazio è quindi $O(1)$.
+
+
+
+
 
 \end{document}
