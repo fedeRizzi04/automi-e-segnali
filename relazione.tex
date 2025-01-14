@@ -46,7 +46,8 @@ In questo documento vengono presentate le scelte fatte in merito all'approccio, 
 
     \item la relazione (questo file) in formato \texttt{pdf} con nome "relazione.pdf"
 
-    \item TODO: test
+    \item una cartella chiamata \texttt{test} in cui all'interno è presente una coppia di file \texttt{inputX.txt} e \texttt{expectedX.txt} dove $x$ è un numero naturale. \\
+    Tali file hanno come intestazione, nel nome, "" come da richieste di consegna
 \end{itemize}
 
 
@@ -127,7 +128,7 @@ Il piano viene rappresentato utilizzando una struttura dati aggiuntiva oltre a q
 \begin{itemize}
     \item Quando viene aggiunto un automa in un punto del piano, bisognerà aggiornare tale struttura dati. Dato un punto del piano, se su di esso giace uno o più automi, allora la chiave rappresentata da tale punto, nella struttura, avrà per valore $Ax$, dove \textit{x} indica il numero di automi giacenti su tale punto
 
-    \item Quando viene aggiunto un ostacolo, la struttura conterrà tutti una entry per ogni punto del perimetro di tale ostacolo. In particolare tutti i punti del perimetro dell'ostacolo saranno memorizzati nella struttura e avranno per valore la stringa "O". Questo permette di avere accesso ai punti del perimetro degli ostacoli in tempo $O(1)$. Come detto in precedenza, se viene cercata l'esistenza di un percorso libero con distanza minima tra un automa e un punto, è certo che nella simulazione di un percorso, se esso va contro un punto del perimetro di un ostacolo, si può dire che non è libero. Sicuramente un percorso andrà prima a "sbattere" contro un punto di un perimetro di un ostacolo che su un punto interno all'area di un ostacolo
+    \item Quando viene aggiunto un ostacolo, la struttura conterrà una entry per ogni punto del perimetro di tale ostacolo. In particolare tutti i punti del perimetro dell'ostacolo saranno memorizzati nella struttura e avranno per valore la stringa "O". Questo permette di avere accesso ai punti del perimetro degli ostacoli in tempo $O(1)$. Come detto in precedenza, se viene cercata l'esistenza di un percorso libero con distanza minima tra un automa e un punto, è certo che nella simulazione di un percorso, se esso va contro un punto del perimetro di un ostacolo, si può dire che non è libero. Sicuramente un percorso andrà prima a "sbattere" contro un punto di un perimetro di un ostacolo che su un punto interno all'area di un ostacolo
 
 
     \item Quando viene richiesto lo stato di un punto del piano e si scopre che esso è vuoto, nella struttura verrà memorizzata tale informazione. Quindi se viene richiesto lo stato del punto $(5,3)$ del piano e su di esso non giace nè un automa nè un ostacolo, la struttura avrà una entry con chiave il punto $(5, 3)$ e valore la stringa "E"
@@ -188,7 +189,7 @@ Questa operazione, specificato il nome di un automa e il punto su cui posizionar
 
 \subsection{esistePercorso}
 
-Questa operazione, dato un punto di arrivo $(x, y)$ nel piano e il nome $\eta$ di un automa, richiede di sapere se è possibile raggiungere tale punto di arrivo partendo da $P(\eta)$ attraverso un percorso libero di lunghezza $D(P(\eta), (x, y))$. Tale distanza rappresenta la lunghezza minima dei percorsi che collegano i due punti. Innanzitutto è possibile vedere il piano come un grafo non orientato in cui:
+Questa operazione, dato un punto di arrivo $(x, y)$ nel piano e il nome $\eta$ di un automa, richiede di sapere se è possibile raggiungere tale punto di arrivo partendo da $P(\eta)$ attraverso un percorso libero di lunghezza $D(P(\eta), (x, y))$ (la lunghezza del percorso deve essere maggiore di \textit{0}, quindi se l'automa giace sullo stesso punto di arrivo non esiste un percorso). Tale distanza rappresenta la lunghezza minima dei percorsi che collegano i due punti. Innanzitutto è possibile vedere il piano come un grafo non orientato in cui:
 
 \begin{itemize}
     \item i vertici rappresentano i punti del piano (insieme $V$)
@@ -328,8 +329,8 @@ Si consideri un piano con un rettangolo $R(8, 4, 14, 8)$, un automa con nome $11
 \end{center}
 La matrice risultante sarà la seguente (dove \textit{1} sta per \texttt{true} e \textit{0} per \texttt{false e la riga \textit{0} è quella più in alto}:
 \[
+\tiny
 \begin{bmatrix}
-\small
 1 & 1 & 1 & 1 & 1 \\
 1 & 1 & 1 & 1 & 1 \\
 0 & 0 & 0 & 1 & 1 \\
@@ -342,7 +343,7 @@ La matrice risultante sarà la seguente (dove \textit{1} sta per \texttt{true} e
 L'entrata $(6, 4)$ risulta \texttt{true} e quindi esiste un percorso libero di distanza minima tra i due punti. Invece, se ci si chiede dell'esistenza di un percorso tra l'automa $01$ e il punto $(12, 2)$, il punto di partenza resterà quello su cui giace $01$ e la matrice verrà popolata dall'entrata $(8, 0)$ fino all'entrata $(0, 3)$ poichè la direzione dei percorsi unitari verticali è verso il basso. La matrice risultante sarà la seguente:
 
 \[
-\small
+\tiny
 \begin{bmatrix}
 0 & 0 & 0 & 0 \\
 0 & 0 & 0 & 0 \\
@@ -358,6 +359,8 @@ L'entrata $(6, 4)$ risulta \texttt{true} e quindi esiste un percorso libero di d
 L'entrata $(0, 3)$, la quale rappresenta il punto $(12, 2)$ risulta \texttt{false} e quindi non esiste un percorso con le condizioni previste.\\
 \textbf{Tempo:} il tempo per risolvere questo problema è proporzionale alla dimensione della tabella. Sia $P = (x_0, y_0)$ il punto di partenza e $Q = (x_1, y_1)$ il punto di arrivo, allora il costo in termini di tempo è dato da $O(r \cdot c)$ dove $r = |y_1 - y_0| +1 $ e $c = |x_1 - x_0| + 1$. Tutte le funzioni chiamate all'interno della funzione \texttt{esistePercorso} vengono eseguite in tempo costante. Questo è possibile grazie alla mappa \texttt{puntiConosciuti} del piano che permette di avere accesso ai punti del perimetro degli ostacoli in tempo costante. Senza questa struttura per ogni entrata della matrice bisognerebbe iterare su tutti gli ostacoli per sapere se il punto rappresentato da tale entrata è contenuto in un ostacolo.\\
 \textbf{Spazio:} lo spazio richiesto è relativo alla matrice di programmazione dinamica e anch'esso è $O(r \cdot c)$.
+
+\textbf{Nota:} se la funzione \texttt{esistePercorso} viene usata fuori dal contesto del problema, ovvero per sapere se esiste un percorso tra due punti generici, in cui in nessuno di essi è presente un automa, è possibile che dia risposte sbagliate. Questo accade quando viene richiesta l'esistenza di un percorso tra due punti all'interno dell'area di un ostacolo e che non fanno parte del perimetro di esso. Questo però, da descrizione del problema, non può mai accadere poichè viene richiesta l'esistenza di un percorso tra un punto su cui giace un automa e un altro punto qualsiasi. Poichè almeno uno di questi punti è al di fuori dell'area di un ostacolo la funzione darà la risposta corretta. 
 
 
 \subsection{richiamo}
@@ -378,7 +381,29 @@ Tale operazione si compone di varie parti (ed è implementata dall'omonima funzi
 \textbf{Spazio:} viene usata una slice per contenere gli automi che devono rispondere al richiamo, una slice per contenere gli automi che effettivamente dovranno spostarsi sul punto di richiamo e ad ogni chiamata di \texttt{esistePercorso} viene allocata la matrice di programmazione dinamica (che viene deallocata quando termina l'esecuzione di tale funzione). Il costo in termini di spazio è quindi $O(a + r \cdot c)$. 
 
 
+\section{test}
 
+Come detto nell'introduzione sono presenti delle coppie di file che testano una funzionalità o un aspetto particolare dell'applicazione. Essi sono numerati da \textit{1} a \textit{6} e di seguito verrà spiegato, per ognuno di essi in ordine crescente di numerazione, perchè sono significativi:
+
+
+\begin{enumerate}
+    \item viene messo in evidenza un esempio in cui l'operazione di esistenza di un percorso implementata tramite visita in ampiezza o in profondità sarebbe troppo costosa
+
+
+    \item viene creato un piano con diversi ostacoli e automi e viene testata la funzionalità di esistenza di un percorso libero e la funzione di richiamo
+
+
+    \item viene testato un caso limite dell'algoritmo usato per l'esistenza di un percorso. Il punto di partenza è sul perimetro di un ostacolo, e inizialmente nella matrice di programmazione dinamica all'entrata che rappresenta tale punto viene salvato \texttt{true}. Con un controllo più avanzato viene poi impostato il valore a \texttt{false}
+
+
+    \item viene creato un piano in cui le entità coinvolte sono molto sparse. La memoria utilizzata è molto limitata rispetto alla possibile rappresentazione del piano tramite una matrice che modella la minima porzione di piano che contenga tali entità
+
+    \item vengono testati i casi limite in cui l'approccio usato per implementare l'operazione di esistenza di un percorso può trovarsi. Questi casi limite sono rappresentati dalla richiesta di percorsi tra due punti in cui la direzione di tale percorso è unica (\textit{1} sulle possibili \textit{4}). Questo accade quando i due punti interessati hanno la stessa ascissa o ordinata. La matrice di programmazione dinamica avrà la forma di un vettore
+
+    \item viene popolato il piano con moltissimi ostacoli rispetto al numero di automi. Si sottolinea l'importanza di memorizzare nella struttura \texttt{puntiConosciuti} il perimetro degli ostacoli, poichè questo evita di scorrere tutta la lista di rettangoli per ogni punto esaminato nell'esistenza di un percorso (usata anche nell'operazione di richiamo, che anch'essa viene testata)
+\end{enumerate}
+
+Si sottolinea che l'implementazione della lista di ostacoli con una lista concatenata, nel modo in cui viene scritto il codice, fa sì che quando venga aggiunto un ostacolo alla lista non venga controllato se è già presente. Questo potrebbe portare a salvare più volte lo stesso ostacolo, avendone una ridondanza (si presume che l'utente non lo faccia, ma potrebbe accadere). Per risolvere questo problema è possibile scorrere prima tutta la lista di ostacoli, ma porterebbe l'inserimento ad avere un costo lineare rispetto al numero di ostacoli nel piano. Un altro modo è quello di usare una mappa che ha per chiave il tipo \texttt{ostacolo} e per valore un \texttt{bool} o una struttura vuota (non presente nel codice per motivi di tempistiche nella consegna).
 
 
 
