@@ -9,7 +9,8 @@
 \usepackage{parskip}
 \geometry{a4paper, margin=2cm}
 \usepackage{listings}       
-\usepackage{xcolor}         
+\usepackage{xcolor}
+\usepackage{tikz}
 
 \lstset{
     language=Go,           
@@ -183,6 +184,205 @@ Se tale entry non è presente, allora bisogna iterare su tutti gli ostacoli pres
 Questa operazione, specificato il nome di un automa e il punto su cui posizionarlo, lo posiziona nel piano se in tale punto non giace già un ostacolo (se l'automa esiste già viene riposizionato). Essa viene implementata dall'omonima funzione e viene controllato se si conosce se nel piano in tale punto è presente un automa o non giace nulla (tramite la struttura \texttt{puntiConosciuti}). Se è questo il caso vengono aggiornate tutte le strutture per mantenere la coerenza di dati e posizionato l'automa nel punto. Invece se si sa che su tale punto giace un ostacolo non viene fatto nulla. Tutte le funzioni e istruzioni eseguite fino a questo punto costano tempo $O(1)$. Nel caso in cui non si conosce se giace o meno un automa, un ostacolo o nulla su tale punto, è necessario iterare tutti gli ostacoli e controllare se almeno uno di essi contiene il punto su cui si vuole posizionare l'automa. \\ 
 \textbf{Tempo:} il tempo nel caso peggiore, dato \textit{n} il numero di ostacoli è $O(n)$ ed esso si presenta quando non si conosce tramite la struttura \texttt{puntiConosciuti} se sul punto specificato giace o meno un automa o un ostacolo. \\
 \textbf{Spazio:} vengono usate delle variabili di supporto, ma esse sono in numero sempre uguale e occupano lo stesso spazio indipendentemente dalla lunghezza dell'istanza in input. Il costo in spazio è quindi $O(1)$.
+
+
+\subsection{esistePercorso}
+
+Questa operazione, dato un punto di arrivo $(x, y)$ nel piano e il nome $\eta$ di un automa, richiede di sapere se è possibile raggiungere tale punto di arrivo partendo da $P(\eta)$ attraverso un percorso libero di lunghezza $D(P(\eta), (x, y))$. Tale distanza rappresenta la lunghezza minima dei percorsi che collegano i due punti. Innanzitutto è possibile vedere il piano come un grafo non orientato in cui:
+
+\begin{itemize}
+    \item i vertici rappresentano i punti del piano (insieme $V$)
+
+    \item gli archi rappresentano un qualsiasi passo unitario ($E \subseteq V \times V$). Quindi $(P, Q) \in E$ se e solo se $P$ e $Q$ sono collegati da un passo unitario (sia orizzontale che verticale)
+\end{itemize}
+
+Tale grafo avrebbe quindi l'insieme $V$ dei vertici ed $E$ degli archi con cardinalità infinita, dunque non avrebbe alcun senso tenerlo memorizzato. E' possibile rappresentarlo implicitamente poichè si ricorre ad esso solamente quando viene richiesta tale operazione. In tal caso il vertice di partenza sarà quello che rappresenta il punto $P(\eta)$ e il vertice di arrivo sarà quello che rappresenta il punto $(x, y)$ di arrivo. Poichè i passi unitari son ben definiti è rappresentare implicitamente anche gli archi del grafo in quanto è noto se esiste un arco tra due vertici (esiste solo se i punti rappresentati dai due vertici sono collegati attraverso un passo unitario nel piano). Il costo in spazio di rappresentazione di tale grafo, dunque, è $O(1)$ in quanto serve solamente tenere in memoria i vertici che rappresentano il punto di partenza e di arrivo. \\
+Inoltre, come già detto nelle considerazioni iniziali, poichè siamo alla ricerca di un percorso libero con lunghezza minima, ci si può muovere attraverso al massimo \textit{2} delle \textit{4} possibili direzioni, ed esse possono essere calcolate facilmente attraverso le coordinate dei due punti. 
+
+\subsubsection{Primo possibile approccio}
+
+Un primo approccio al problema consiste nell'utilizzare un algoritmo di visita in ampiezza (BFS) o in profondità (DFS). Tali algoritmi, partendo dal vertice che rappresenta il punto di arrivo, simulano tutti i possibili percorsi (con due strategie differenti) nelle direzioni possibili (che sono \textit{1} o \textit{2}). La BFS ad ogni iterazione visita i vicini del vertice corrente, e tali vicini saranno i vertici raggiungibili con un solo arco, ovvero i punti raggiungibili da un passo unitario nelle, al massimo, \textit{2} direzioni possibili.La DFS, diversamente dalla BFS, ad ogni iterazione cerca di avanzare il più lontano possibile lungo una direzione. Questo significa che il percorso verrà esteso in una direzione scelta tra quelle possibili finché si incontrano ostacoli o si raggiunge il punto di arrivo $(x, y)$. Una volta esaurita una possibile direzione, si ritorna indietro al punto più recente in cui erano rimaste altre direzioni da esplorare, continuando la ricerca da lì.\\
+Entrambe le visite terminano la simulazione di un possibile percorso quando viene visitato un vertice che rappresenta un punto del piano su cui giace il perimetro di un ostacolo. E' sicuro che, se un percorso incontra un ostacolo, lo fa inizialmente su un punto del perimetro di tale ostacolo, poichè un automa sicuramente non giace su punti appartenenti all'area di un ostacolo. Quindi questa verifica viene fatta in tempo $O(1)$, ed è il vantaggio di tenere in memoria la struttura \texttt{puntiConosciuti} che memorizza i punti del perimetro degli ostacoli. Se non ci fosse tale struttura, per ogni punto visitato bisognerebbe scorrere tutta la lista di ostacoli, che ha costo lineare rispetto al numero di essi nel piano. \\
+Entrambe le visite terminano quando vengono esplorati tutti i possibili percorsi di lunghezza $D(P(\eta), (x, y))$, e se esiste un percorso libero di tale lunghezza, sarà stato visitato il vertice che rappresenta il punto di arrivo. 
+
+Questo approccio è efficace ma \textbf{non efficiente}. Questo perchè entrambe le visite, nel caso peggiore, simulano tutti i possibili percorsi di lunghezza minima tra $P(\eta)$ e $(x, y)$, i quali, se le direzioni percorribili sono \textit{2} (quindi i punti di arrivo e partenza non si trovano o sulla stessa ascissa o sulla stessa ordinata), sono $2^d$ dove $d = D(P(\eta), (x, y))$. Tali algoritmi lavorano quindi in tempo esponenziale rispetto alla distanza $D$ tra i due punti, in quanto simulano una ricerca esaustiva di un percorso libero e sono quindi impraticabili. 
+
+
+\subsubsection{Approccio usato}
+
+Per risolvere il problema è stato usato un approccio di programmazione dinamica. Gli approcci precedenti simulavano tutti i possibili percorsi di lunghezza minima tra il punto di partenza e il punto di arrivo. E' possibile però fare delle considerazioni su tale problema, e astrarne i concetti fondamentali:
+
+\begin{itemize}
+    \item un percorso libero di lunghezza minima è formato da sottopercorsi liberi di lunghezza minima (principio di ottimalità)
+
+    \item non è tanto importante la simulazione del percorso, ma capire se questo esiste. E' possibile individuare l'insieme di punti che un percorso libero di distanza minima potrebbe percorrere e chiedersi per ognuno di tali punti una volta per tutte se esiste un percorso libero di distanza minima tra esso e il punto di partenza. Questo permette di risolvere il problema per tale punto una sola volta, senza simulare tutti i percorsi che passano per tale punto
+\end{itemize}
+
+Ad esempio, se viene cercata l'esistenza di un percorso tra il punto $(1, 1)$ e il punto $(3, 4)$ di distanza $D((1, 1), (3, 4))$ è possibile individuare un insieme di punti candidati ad essere percorsi:
+
+\begin{center}
+\begin{tikzpicture}[scale=0.5]
+
+% Disegno degli assi cartesiani
+\draw[->] (0,0) -- (5,0) node[right] {$x$};
+\draw[->] (0,0) -- (0,5) node[above] {$y$};
+
+% Linee della griglia
+\draw[gray, very thin] (0,0) grid (5,5);
+
+% Rettangolo
+\draw[thick, blue] (1,1) rectangle (3,4);
+
+% Punti di interesse
+\filldraw[red] (1,1) circle (2pt) node[below left] {$(1,1)$};
+\filldraw[red] (3,4) circle (2pt) node[above right] {$(3,4)$};
+
+% Punti interni candidati
+\foreach \x in {1,2,3} {
+    \foreach \y in {1,2,3,4} {
+        \filldraw[red] (\x,\y) circle (1pt);
+    }
+}
+
+% Etichette di alcuni assi
+\foreach \x in {1,2,3,4} {
+    \draw (\x,0) -- (\x,-0.1) node[below] {\x};
+}
+\foreach \y in {1,2,3,4} {
+    \draw (0,\y) -- (-0.1,\y) node[left] {\y};
+}
+
+\end{tikzpicture}
+\end{center}
+
+Solo i punti appartenenti all'area della figura in blu possono essere percorsi, altrimenti il percorso non sarebbe di lunghezza minima. Tale figura può essere vista come una matrice di programmazione dinamica (che sarà una matrice di \texttt{bool}), e in generale tale matrice dato il punto di partenza $P = (x_0, y_0)$ e il punto di arrivo $Q = (x_1, y_1)$ ha dimensione $n \times m$ dove $n = |y_1 - y_0| + 1$ e $m = |x_1 - x_0| +1$. Per risolvere il problema dell'esistenza di un percorso libero di lunghezza minima tra i due punti deve essere percorsa la matrice secondo delle direzioni precise e partendo da entrate precise di essa. Questo dipende dalle direzioni percorribili tra i due punti per avere un percorso libero di lunghezza minima. In questo caso è possibile, partendo da $(1, 1)$ fare passi unitari orizzontali che aumentano di \textit{1} la coordinata \textit{x} e fare passi unitari verticali che aumentano di \textit{1} la coordinata \textit{y} di un punto. Quindi la matrice deve essere popolata a partire dall'entrata $(0, 0)$ esaminando riga per riga (aumentandone l'indice) le possibili colonne dall'indice più basso a quello più alto. \\
+Se fosse stato richiesto un percorso con punto di partenza $(3, 4)$ e punto di arrivo $(1, 1)$, i passi unitari orizzontali possibili sarebbero stati quelli che diminuiscono di \textit{1} la coordinata \textit{x} e i passi unitari orizzontali possibili sarebbero stati quelli che diminuiscono di \textit{1} la coordinata \textit{y} di un punto. Quindi la matrice dovrebbe essere popolata dall'entrata $(3, 2)$, esaminando riga per riga (diminuendone l'indice) le possibili colonne dall'indice più alto a quello più basso. 
+
+Dato l'alto numero di direzioni possibili per popolare la matrice di programmazione dinamica è possibile fare una considerazione. Se esiste un percorso libero di lunghezza minima tra un punto di partenza e un punto di arrivo, esiste anche se si parte dal punto di arrivo. Questo permette di decidere di partire dal punto, tra i due, che permette di popolare la matrice seguendo un ordine crescente di colonne (quindi tale per cui i passi orizzontali sono fatti aumentando di \textit{1} la coordinata \textit{x}). Quindi, se viene richiesta l'esistenza di un percorso libero tra il punto $(3, 4)$ e il punto $(1, 1)$ è possibile comunque partire dal punto $(1, 1)$. Questo fa sì che il punto di partenza per popolare la matrice e l'ordine da seguire dipenda solo dalla direzione dei passi unitari verticali. Se essi possono essere effettuati aumentandone la coordinata \textit{y} si parte dall'entrata $(0, 0)$ della matrice e si popola essa esaminando riga per riga, aumentandone l'indice, le possibili colonne. Al contrario si popola essa esaminando riga per riga, diminuendone l'indice, le possibili colonne. Le colonne vengono esaminate sempre dall'indice più basso a quello più alto. 
+
+\textbf{Popolare la matrice:}
+
+A questo punto è possibile descrivere come viene popolata la matrice di programmazione dinamica, $DP$ da ora. Come accennato precedentemente è una matrice di \texttt{bool}, e dato il punto di partenza, il punto di arrivo e la direzione dei passi unitari verticali è possibile far corrispondere un'entrata di tale matrice ad un punto del piano in modo univoco. Il valore dell'entrata $DP[i][j]$ della matrice ha il seguente significato, una volta popolata:
+
+
+\begin{itemize}
+    \item \texttt{true} se esiste un percorso libero di distanza minima dal punto di partenza designato al punto rappresentato dall'entrata della matrice
+
+    \item \texttt{false} altrimenti
+\end{itemize}
+
+Essa, come detto precedentemente, viene popolata a partire dalla colonna \textit{0} e da una riga dipendente dai passi unitari verticali del percorso. Si supponga che tali passi unitari verticali siano tali che venga aumentata di \textit{1} la coordinata \textit{y} dei punti intermedi. Quindi la matrice viene popolata riga per riga (da indice \textit{0} all'ultimo indice disponibile), scorrendo le colonne dall'indice \textit{0} all'ultimo indice disponibile. Inizialmente viene inizializzata l'entrata di partenza della matrice a \texttt{true} (in questo caso l'entrata $(0, 0)$. Tale valore può cambiare se e solo se il punto rappresentato da tale entrata si trova su un perimetro di un ostacolo, e in tal caso viene cambiato a \texttt{false}. In tutti gli altri casi rimane invariato. A questo punto vengono esaminate le altre entrate della matrice, e per ogni entrata $(i, j)$:
+
+\begin{itemize}
+    \item Se il punto del piano rappresentato da tale entrata si trova sul perimetro di un ostacolo $DP[i][j]$ avrà valore \texttt{false}
+
+    \item Se ciò non accade vengono controllate le entrare $(i, j-1)$ e $(i-1, j)$, se esistono. Se almeno una di essa ha valore \texttt{true} allora $DP[i, j]$ avrà valore \texttt{true}, altrimenti avrà valore \texttt{false}
+\end{itemize}
+
+Esaminare le due entrate descritte vuol dire esaminare i punti che si trovano esattamente a un passo unitario orizzontale e verticale di distanza dal punto rappresentato dall'entrata della matrice. Se almeno uno di essi è raggiungibile da un percorso libero di distanza minima a partire dal punto di partenza, allora lo è anche il punto in esame. Se la direzione dei passi unitari verticali avviene diminuendo di \textit{1} la coordinata \textit{y} dei punti esaminati, al posto che l'entrata $(i-1, j)$ verrà controllata l'entrata $(i+1, j)$ e la matrice verrà popolata nell'ordine descritto precedentemente. \\
+Alla fine di tale operazioni la matrice nell'entrata che rappresenta il punto di arrivo avrà valore \texttt{true} se esiste un percorso libero di distanza minima tra i due punti specificati all'inizio, \texttt{false} altrimenti. 
+
+\textbf{Alcuni esempi:}
+
+Si consideri un piano con un rettangolo $R(8, 4, 14, 8)$, un automa con nome $111$ in posizione $(16, 8)$ e un automa con nome $01$ in posizione $(9, 9)$. E' possibile chiedersi se esiste un percorso libero tra l'automa \textit{111} e il punto $(12, 2)$. Per quando detto in precedenza si può partire dal punto $(12, 2)$ e arrivare al punto $(16, 8)$. La matrice verrà popolata dall'entrata $(0, 0)$ fino all'entrata $(6, 4)$.
+
+\begin{center}
+    
+\begin{tikzpicture}[scale=0.5]
+
+% Disegno degli assi cartesiani
+\draw[->] (0,0) -- (20,0) node[right] {$x$};
+\draw[->] (0,0) -- (0,10) node[above] {$y$};
+
+% Linee della griglia
+\draw[gray, very thin] (0,0) grid (20,10);
+
+% Rettangolo pieno
+\fill[blue!30] (8,4) rectangle (14,8);
+
+% Rettangolo tratteggiato
+\draw[red, dashed] (12,2) rectangle (16,8);
+\draw[blue, dashed] (9,2) rectangle (12,9);
+
+
+% Punti di interesse (colorati in verde)
+\filldraw[green] (12,2) circle (2pt);
+\filldraw[green] (16,8) circle (2pt);
+\filldraw[green] (9, 9) circle (2 pt);
+
+% Etichette dei punti (coordinate)
+\node[below left] at (12,2) {$(12, 2)$};
+\node[above right] at (16,8) {$111$};
+\node[above right] at (9,9) {$01$};
+
+
+% Etichette degli assi
+\foreach \x in {1,2,...,19} {
+    \draw (\x,0) -- (\x,-0.3) node[below] {\x};
+}
+\foreach \y in {1,2,...,9} {
+    \draw (0,\y) -- (-0.3,\y) node[left] {\y};
+}
+
+\end{tikzpicture}
+\end{center}
+La matrice risultante sarà la seguente (dove \textit{1} sta per \texttt{true} e \textit{0} per \texttt{false e la riga \textit{0} è quella più in alto}:
+\[
+\begin{bmatrix}
+\small
+1 & 1 & 1 & 1 & 1 \\
+1 & 1 & 1 & 1 & 1 \\
+0 & 0 & 0 & 1 & 1 \\
+0 & 0 & 0 & 1 & 1 \\
+0 & 0 & 0 & 1 & 1 \\
+0 & 0 & 0 & 1 & 1 \\
+0 & 0 & 0 & 1 & 1 \\
+\end{bmatrix}
+\]
+L'entrata $(6, 4)$ risulta \texttt{true} e quindi esiste un percorso libero di distanza minima tra i due punti. Invece, se ci si chiede dell'esistenza di un percorso tra l'automa $01$ e il punto $(12, 2)$, il punto di partenza resterà quello su cui giace $01$ e la matrice verrà popolata dall'entrata $(8, 0)$ fino all'entrata $(0, 3)$ poichè la direzione dei percorsi unitari verticali è verso il basso. La matrice risultante sarà la seguente:
+
+\[
+\small
+\begin{bmatrix}
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+1 & 1 & 1 & 1 \\
+\end{bmatrix}
+\]
+
+L'entrata $(0, 3)$, la quale rappresenta il punto $(12, 2)$ risulta \texttt{false} e quindi non esiste un percorso con le condizioni previste.\\
+\textbf{Tempo:} il tempo per risolvere questo problema è proporzionale alla dimensione della tabella. Sia $P = (x_0, y_0)$ il punto di partenza e $Q = (x_1, y_1)$ il punto di arrivo, allora il costo in termini di tempo è dato da $O(r \cdot c)$ dove $r = |y_1 - y_0| +1 $ e $c = |x_1 - x_0| + 1$. Tutte le funzioni chiamate all'interno della funzione \texttt{esistePercorso} vengono eseguite in tempo costante. Questo è possibile grazie alla mappa \texttt{puntiConosciuti} del piano che permette di avere accesso ai punti del perimetro degli ostacoli in tempo costante. Senza questa struttura per ogni entrata della matrice bisognerebbe iterare su tutti gli ostacoli per sapere se il punto rappresentato da tale entrata è contenuto in un ostacolo.\\
+\textbf{Spazio:} lo spazio richiesto è relativo alla matrice di programmazione dinamica e anch'esso è $O(r \cdot c)$.
+
+
+\subsection{richiamo}
+
+Tale operazione si compone di varie parti (ed è implementata dall'omonima funzione nel programma). Dato il punto di richiamo $Q$ e la stringa $s$:
+
+\begin{itemize}
+    \item è necessario prima controllare se su $Q$ giace un ostacolo. Questo viene fatto in tempo $O(1)$ se tale punto giace sul perimetro di un ostacolo, in tempo $O(n)$ altrimenti (dove $n$ è il numero di ostacoli presenti nel piano). Se ciò accade è possibile rispondere al problema, altrimenti si deve andare avanti
+
+
+    \item è poi necessario individuare gli automi che hanno nome con prefisso $s$. Questo prevede di iterare su tutto il numero di automi e utilizzare la funzione \texttt{HasPrefix} del package \texttt{strings} e aggiungere gli automi che soddisfano la condizione precedente in una slice. Sia $a$ il numero di automi e $l$ la lunghezza della stringa $s$, questo viene fatto in tempo $O(l \cdot a)$ poichè l'aggiunta di un elemento ad una slice viene fatto in tempo $O(1)$ ammortizzato
+
+
+    \item A questo punto, per ogni automa individuato nel punto precedente è necessario chiedersi se esiste un percorso con lunghezza minima tra esso e il punto di richiamo. A tal proposito viene utilizzata la funzione \texttt{esistePercorso} spiegata precedentemente. Viene mantenuta una variabile \texttt{min} per sapere quale è la distanza minima tra tutti gli automi presi in considerazione e per cui esiste un percorso verso il punto di richiamo. In questo modo si può evitare di dover invocare la funzione \texttt{esistePercorso} inutilmente. In ogni caso, nel caso peggiore la distanza dal punto di richiamo e il punto su cui giace ogni automa che deve rispondere al richiamo è uguale. A questo punto è necessario eseguire la funzione di esistenza di un percorso per ogni automa, e questo per ognuno di esso ha un costo $O(r \cdot c)$ (tali parametri hanno lo stesso significato di quanto spiegato nella sezione precedente). Poichè $a$ è il numero di automi presenti nel piano, nel caso peggiore tutti devono rispondere al richiamo, portando questa parte a costare $O(a \cdot r \cdot c)$
+\end{itemize}
+
+\textbf{Tempo:} il tempo totale è quindi $O(n + l \cdot a + a \cdot r \cdot c)$. In situazioni naturali $n$ e $l\cdot a$ sono trascurabili rispetto a $a \cdot r \cdot c$, portando il costo a $O(a \cdot r \cdot c)$.\\
+\textbf{Spazio:} viene usata una slice per contenere gli automi che devono rispondere al richiamo, una slice per contenere gli automi che effettivamente dovranno spostarsi sul punto di richiamo e ad ogni chiamata di \texttt{esistePercorso} viene allocata la matrice di programmazione dinamica (che viene deallocata quando termina l'esecuzione di tale funzione). Il costo in termini di spazio è quindi $O(a + r \cdot c)$. 
+
+
+
+
+
+
+
 
 
 

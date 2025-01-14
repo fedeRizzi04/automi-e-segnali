@@ -377,7 +377,7 @@ func esistePercorso(p piano, partenza punto, arrivo punto) bool {
 			}
 			icontrollo := i - diry
 			//controllo se il punto sulla riga precedente è raggiungibile da un percoro libero minimo a partire dal punto di arrivo. Nelle prossime righe non è possibile avere un outOfBound nella slice per via della lazy evaluation sulla condizione
-			if icontrollo >= 0 && icontrollo < righe && icontrollo != i && dp[icontrollo][j] {
+			if icontrollo >= 0 && icontrollo < righe /*&& icontrollo != i*/ && dp[icontrollo][j] {
 				dp[i][j] = true
 				//se no provo col punto sulla colonna precedente
 			} else if j-1 >= 0 && j-1 < colonne && dp[i][j-1] {
