@@ -21,12 +21,8 @@ type ostacolo struct {
 
 // lista di ostacoli
 type ListOstacoli interface {
-
-	// Aggiunge un ostacolo alla lista
 	AddOstacolo(r ostacolo)
-	// Dato un punto restituisce true se il punto è contenuto in almeno un ostacolo della lista
 	ContienePunto(p punto) bool
-	//stampa i rettangoli
 	StampaOstacoli()
 }
 
@@ -40,29 +36,6 @@ type piano *struct {
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	var p piano
-	/*
-		piano := crea()
-		automa(piano, 2, 1, "1")
-		automa(piano, 2, 8, "10")
-		automa(piano, 5, 11, "11")
-		automa(piano, 8, 9, "100")
-		automa(piano, 10, 6, "101")
-		automa(piano, 12, 2, "111")
-		automa(piano, 13, 3, "110")
-
-		ostacolo(piano, 1, 3, 4, 6)
-		ostacolo(piano, 3, 2, 4, 7)
-		ostacolo(piano, 3, 0, 15, 1)
-		ostacolo(piano, 6, 5, 7, 8)
-		ostacolo(piano, 6, 1, 10, 3)
-
-		stampa(piano)
-
-		//fmt.Println(esistePercorso(piano, 5, 3, "100"))
-		richiamo(piano, 5, 3, "1")
-		stampa(piano)
-	*/
-
 	for scanner.Scan() {
 		str := scanner.Text()
 		com := strings.Fields(str)[0]
@@ -72,7 +45,6 @@ func main() {
 			esegui(p, str)
 		}
 	}
-
 }
 
 // definizione del tipo implementante l'interfaccia ListRettangoli
@@ -321,28 +293,10 @@ func direzioni(puntoAutoma punto, puntoArrivo punto) (int, int) {
 	return dx, dy
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func dimensioneTabella(punto1 punto, punto2 punto) (int, int) {
-	minx, maxx := min(punto1.x, punto2.x), max(punto1.x, punto2.x)
-	miny, maxy := min(punto1.y, punto2.y), max(punto1.y, punto2.y)
-
-	colonne := int(math.Abs(float64(maxx-minx)) + 1)
-	righe := int(math.Abs(float64(maxy-miny)) + 1)
+	colonne := int(math.Abs(float64(punto2.x-punto1.x))) + 1
+	righe := int(math.Abs(float64(punto2.y-punto1.y))) + 1
 	return righe, colonne
-
 }
 
 // con l'assunzione che il punto di partenza debba avere direzione dx = 1 o 0, percorriamo la tabella sempre da sinistra verso destra
@@ -439,7 +393,6 @@ func richiamo(p piano, x int, y int, s string) {
 	}
 	//se non conosco cosa c'è devo vedere se c'è un ostacolo o meno
 	if str == "" && p.ostacoli.ContienePunto(punto) {
-		// p.puntiConosciuti[punto] = "O"
 		return
 	}
 
@@ -507,7 +460,6 @@ func stato(p piano, x int, y int) {
 
 	if p.ostacoli.ContienePunto(punto) {
 		fmt.Println("O")
-		//p.puntiConosciuti[punto] = "O"
 	} else {
 		fmt.Println("E")
 		p.puntiConosciuti[punto] = "E"
