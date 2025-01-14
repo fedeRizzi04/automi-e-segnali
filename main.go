@@ -15,8 +15,8 @@ type punto struct {
 }
 
 type ostacolo struct {
-	bassoSx punto // Punto in basso a sinistra
-	altoDx  punto // Punto in alto a destra
+	bassoSx punto
+	altoDx  punto
 }
 
 // lista di ostacoli
@@ -27,9 +27,8 @@ type ListOstacoli interface {
 }
 
 type piano *struct {
-	automi   map[string]punto
-	ostacoli ListOstacoli
-	// Mappa che associa ai punti del piano visitati almeno una volta il relativo contenuto: A se contiene un automa, O se contiene un ostacolo, E se è vuoto
+	automi          map[string]punto
+	ostacoli        ListOstacoli
 	puntiConosciuti map[punto]string
 }
 
@@ -132,8 +131,6 @@ func esegui(p piano, s string) {
 
 func contiene(rett ostacolo, punto punto) bool {
 	return (punto.x >= rett.bassoSx.x && punto.x <= rett.altoDx.x && punto.y >= rett.bassoSx.y && punto.y <= rett.altoDx.y)
-
-	// Costo: O(1)
 }
 
 func newPiano() piano {
@@ -149,8 +146,6 @@ func newPiano() piano {
 }
 
 func stampa(p piano) {
-
-	//prima stampo gli automi:
 	fmt.Println("(")
 	for k, v := range p.automi {
 		fmt.Printf("%s: %d,%d\n", k, v.x, v.y)
@@ -219,8 +214,6 @@ func aggiungiPerimetro(p piano, x0 int, y0 int, x1 int, y1 int) {
 		p.puntiConosciuti[punto{x0, i}] = "O"
 		p.puntiConosciuti[punto{x1, i}] = "O"
 	}
-
-	// Costo: O(n+m) con n = x1-x0 e m = y1-y0
 }
 
 func aggiungiOstacolo(p piano, x0 int, y0 int, x1 int, y1 int) {
@@ -234,11 +227,7 @@ func aggiungiOstacolo(p piano, x0 int, y0 int, x1 int, y1 int) {
 	}
 
 	p.ostacoli.AddOstacolo(rett)
-	//Aggiungo i punti del perimetro del ostacolo poichè un automa, dato un punto di arrivo, può scontrarsi solamente con i punti del perimetro degli ostacoli
 	aggiungiPerimetro(p, x0, y0, x1, y1)
-
-	// Costo: O(a + n + m) con a = numero di automi, n = x1-x0 e m = y1-y0
-
 }
 
 func rangeAutomiPrefisso(p piano, s string, azione func(string, punto)) {
@@ -267,12 +256,7 @@ func automiPrefisso(p piano, s string) []string {
 
 func distanzaPunti(p1 punto, p2 punto) int {
 	return int(math.Abs(float64(p2.x-p1.x)) + math.Abs(float64(p2.y-p1.y)))
-
-	// Costo: O(1)
 }
-
-//dato un automa e un punto di richiamo, tale automa può muoversi secondo due percorsi unitari, in base a dove è il punto di arrivo. Non può muoversi in tutte e 4 le direzioni
-//poichè deve fare un un percorso di distanza minima, e se andasse in un percorso che si allontana dal punto di arrivo, non sarebbe il percorso di distanza minima
 
 func signum(x int) int {
 	if x < 0 {
@@ -307,7 +291,7 @@ func esistePercorso(p piano, partenza punto, arrivo punto) bool {
 	}
 	righe, colonne := dimensioneTabella(partenza, arrivo)
 	_, diry := direzioni(partenza, arrivo)
-	partenzaRighe, finaleRighe := partenzaFineRighe(diry, righe) // in base alla direzione di y, determiniamo la riga di partenza e di arrivo. Se la direzione va verso il basso, si parte dalla riga più in alto, se no dalla riga più in basso
+	partenzaRighe, finaleRighe := partenzaFineRighe(diry, righe)
 
 	dp := make([][]bool, righe)
 	for i := range dp {
@@ -325,13 +309,12 @@ func esistePercorso(p piano, partenza punto, arrivo punto) bool {
 				dp[i][j] = false
 				continue
 			}
-			//per il punto di partenza non è necessario controllare se è raggiungibile da un percorso libero minimo a partire da esso, è già vero
 			if partenzaRighe == i && j == 0 {
 				continue
 			}
 			icontrollo := i - diry
 			//controllo se il punto sulla riga precedente è raggiungibile da un percoro libero minimo a partire dal punto di arrivo. Nelle prossime righe non è possibile avere un outOfBound nella slice per via della lazy evaluation sulla condizione
-			if icontrollo >= 0 && icontrollo < righe /*&& icontrollo != i*/ && dp[icontrollo][j] {
+			if icontrollo >= 0 && icontrollo < righe && dp[icontrollo][j] {
 				dp[i][j] = true
 				//se no provo col punto sulla colonna precedente
 			} else if j-1 >= 0 && j-1 < colonne && dp[i][j-1] {
