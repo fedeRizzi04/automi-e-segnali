@@ -19,7 +19,6 @@ type ostacolo struct {
 	altoDx  punto
 }
 
-// lista di ostacoli
 type ListOstacoli interface {
 	AddOstacolo(r ostacolo)
 	ContienePunto(p punto) bool
@@ -68,7 +67,6 @@ func (l *myListOstacoli) AddOstacolo(r ostacolo) {
 
 func (l *myListOstacoli) ContienePunto(p punto) bool {
 	for n := l.head; n != nil; n = n.next {
-		//da ottimizzare
 		if p.x >= n.ret.bassoSx.x && p.x <= n.ret.altoDx.x && p.y >= n.ret.bassoSx.y && p.y <= n.ret.altoDx.y {
 			return true
 		}
@@ -81,8 +79,6 @@ func (l *myListOstacoli) StampaOstacoli() {
 		fmt.Printf("(%d,%d)(%d,%d)\n", n.ret.bassoSx.x, n.ret.bassoSx.y, n.ret.altoDx.x, n.ret.altoDx.y)
 	}
 }
-
-// FUNZIONI PER SPECIFICHE DI PROGETTAZIONE
 
 func esegui(p piano, s string) {
 	comandi := strings.Fields(s)
@@ -203,13 +199,11 @@ func automa(p piano, x int, y int, n string) {
 
 // dato un nuovo ostacolo aggiunto, aggiunge i punti del perimetro di tale ostacolo alla mappa dei punti conosciuti
 func aggiungiPerimetro(p piano, x0 int, y0 int, x1 int, y1 int) {
-	//aggiunta dei lati orizzontali
 	for i := x0; i <= x1; i++ {
 		p.puntiConosciuti[punto{i, y0}] = "O"
 		p.puntiConosciuti[punto{i, y1}] = "O"
 	}
 
-	//aggiunta dei lati verticali
 	for i := y0; i <= y1; i++ {
 		p.puntiConosciuti[punto{x0, i}] = "O"
 		p.puntiConosciuti[punto{x1, i}] = "O"
@@ -268,9 +262,8 @@ func signum(x int) int {
 	return 0
 }
 
-// dato un punto di arrivo e un automa in posizione, restituisce le direzioni in cui l'automa può muoversi in un percorso
-// minimo. La prima variabile di ritorno indica la direzione sull'asse x, la seconda sull'asse y (e tali valori
-// possono essere -1, 0, 1)
+// dato un punto di arrivo e un automa in posizione, restituisce le direzioni in cui l'automa può muoversi in un percorso con lunghezza
+// minima. La prima variabile di ritorno indica la direzione sull'asse x, la seconda sull'asse y (e tali valori possono essere -1, 0, 1)
 func direzioni(puntoAutoma punto, puntoArrivo punto) (int, int) {
 	dx := signum(puntoArrivo.x - puntoAutoma.x)
 	dy := signum(puntoArrivo.y - puntoAutoma.y)
@@ -285,8 +278,8 @@ func dimensioneTabella(punto1 punto, punto2 punto) (int, int) {
 
 // con l'assunzione che il punto di partenza debba avere direzione dx = 1 o 0, percorriamo la tabella sempre da sinistra verso destra
 func esistePercorso(p piano, partenza punto, arrivo punto) bool {
-	// il percorso non sarebbe di distanza al minimo 1
-	if partenza == arrivo {
+
+	if partenza == arrivo { // il percorso non sarebbe di distanza al minimo 1
 		return false
 	}
 	righe, colonne := dimensioneTabella(partenza, arrivo)
@@ -330,7 +323,7 @@ func esistePercorso(p piano, partenza punto, arrivo punto) bool {
 	return dp[finaleRighe][colonne-1]
 }
 
-// data la direzione sull'asse y del percorso minimo, restituisce la riga di partenza della matrice dp da cui partire e quella di arrivo (da mettere nella condizione sul for)
+// data la direzione sull'asse y del percorso minimo, restituisce la riga di partenza della matrice dp da cui partire e quella da mettere nella condizione sul for
 func partenzaFineRighe(diry int, righe int) (int, int) {
 	var partenzaI int
 	var finaleI int
@@ -379,13 +372,11 @@ func richiamo(p piano, x int, y int, s string) {
 		return
 	}
 
-	//se sono arrivato qui vuol dire che non c'è un ostacolo e quindi bisogna sapere gli automi con prefisso s e poi calcolare per ognuno di essi se esiste un percorso libero.
-	//Per gli automi che hanno un percorso libero di distanza D allora salvo quelli che possono raggiungere il punto di richiamo. Essi sono quelli con D minima e percorso libero.
 	nomiAutomi := automiPrefisso(p, s)
 	automiDaSpostare := []string{}
 	min := -1
 	for _, nome := range nomiAutomi {
-		//devo mettere come primo punto quello che deve andare a destra
+		//devo mettere come primo punto quello che deve andare verso destra (con passi unitari orizzontali dove la x aumenta di 1)
 		p1, p2 := scegliPartenza(p.automi[nome], punto)
 		d := distanzaPunti(p1, p2)
 		// se la distanza tra l'automa e il punto di richiamo è maggiore della distanza minima trovata finora, non ha senso calcolare l'esistenza di un percorso
@@ -401,7 +392,6 @@ func richiamo(p piano, x int, y int, s string) {
 			}
 		}
 	}
-
 	// sposto gli automi che possono raggiungere il punto di richiamo
 	spostaAutomi(automiDaSpostare, p, punto)
 }
