@@ -5,6 +5,6 @@ testAutomatici2/
 testPersonali/
 traccia/
 testACaso/
-visualizzatorePiano/
 expected/
 outFiles/
+visualizzatorePiano/*.png
