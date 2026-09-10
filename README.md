@@ -1,18 +1,43 @@
 # Automi e segnali
 
-In questo progetto viene rappresentato un piano cartesiano potenzialmente infinito sul quale possono essere inseriti automi e ostacoli rettangolari. Ogni automa è identificato da un nome univoco sull'alfabeto `{0, 1}` e occupa un punto del piano, mentre un ostacolo occupa tutti i punti compresi tra il proprio vertice in basso a sinistra e quello in alto a destra.
+Questo repository contiene il progetto realizzato per l'insegnamento di "Algoritmi e strutture dati" della Laurea triennale in Informatica all'Università degli Studi di Milano. L'anno accademico è il 2024/2025.
 
-Le operazioni principali consistono nel determinare se un automa può raggiungere un punto attraverso un percorso libero di lunghezza minima e nell'eseguire un richiamo. In quest'ultimo caso vengono considerati gli automi il cui nome ha un determinato prefisso; tra quelli per cui esiste un percorso libero vengono spostati sul punto di richiamo tutti e soli gli automi che si trovano alla distanza minima.
+In questo progetto viene rappresentato un piano cartesiano potenzialmente infinito sul quale possono essere inseriti automi e ostacoli rettangolari. Ogni automa è identificato da un nome univoco sull'alfabeto `{0, 1}` (oltre che dalle coordinate $x$ ed $y$ che descrivono il punto su cui giace l'automa), mentre ogni ostacolo è definito dal proprio vertice in basso a sinistra e dal proprio vertice in alto a destra.
 
-## Approccio utilizzato
+## Notazione e percorsi
 
-La distanza tra due punti è la distanza di Manhattan. Di conseguenza, un percorso di lunghezza minima può muoversi solamente nelle direzioni che avvicinano il punto di partenza a quello di arrivo. I punti candidati a far parte del percorso formano quindi un rettangolo, rappresentato implicitamente mediante una matrice di programmazione dinamica.
+Sia $\eta$ il nome di un automa, con $P(\eta)$ si indica il punto del piano sul quale esso si trova. Dati due punti $P=(x_0,y_0)$ e $Q=(x_1,y_1)$, la loro distanza di Manhattan è definita come:
 
-Ogni entrata della matrice indica se il punto corrispondente è raggiungibile tramite un percorso libero di lunghezza minima. La matrice viene popolata esaminando per ogni punto i due possibili predecessori; i punti appartenenti al perimetro di un ostacolo vengono invece marcati come non raggiungibili. Sia $r$ il numero di righe e $c$ il numero di colonne del rettangolo compreso tra i due punti, il costo della verifica è $O(r \cdot c)$ sia in tempo che in spazio.
+$$
+D(P,Q)=|x_1-x_0|+|y_1-y_0|
+$$
 
-Gli automi sono memorizzati in una mappa che associa ogni nome alla sua posizione. Gli ostacoli sono memorizzati in una lista concatenata, mentre una seconda mappa contiene le informazioni già conosciute sui punti del piano. In particolare vengono memorizzati i punti occupati dagli automi, i punti vuoti già esaminati e il perimetro degli ostacoli. Questo permette di verificare in tempo costante se un punto esaminato durante la ricerca del percorso appartiene al perimetro di un ostacolo.
+Un passo unitario collega due punti adiacenti in direzione orizzontale o verticale e modifica quindi una sola coordinata di $1$ o $-1$. Un percorso è una sequenza di passi unitari e la sua lunghezza corrisponde al numero di passi che lo compongono. Per andare da $P$ a $Q$ sono necessari almeno $|x_1-x_0|$ passi orizzontali e $|y_1-y_0|$ passi verticali: un percorso ha quindi lunghezza minima quando la sua lunghezza è esattamente $D(P,Q)$.
 
-Una descrizione più approfondita delle strutture dati, degli algoritmi e dei relativi costi è presente in [`relazione.tex`](relazione.tex).
+Un percorso è libero se nessuno dei punti attraversati è occupato da un ostacolo. Non sono ammessi percorsi più lunghi che aggirano un ostacolo: l'operazione richiesta deve stabilire se esiste un percorso libero di lunghezza esattamente pari alla distanza di Manhattan. Ai fini dell'operazione tale lunghezza deve inoltre essere maggiore di zero; se $P(\eta)=Q$, quindi, il risultato è negativo.
+
+Nella descrizione delle operazioni, $R(x_0,y_0,x_1,y_1)$ indica un ostacolo rettangolare e $s$ indica un prefisso sull'alfabeto `{0, 1}`.
+
+## Regole del piano
+
+Gli automi e gli ostacoli vengono inseriti sul piano rispettando le seguenti regole:
+
+- più automi possono trovarsi sullo stesso punto, purché abbiano nomi differenti;
+- un automa non può essere inserito o spostato su un punto occupato da un ostacolo;
+- un ostacolo può essere aggiunto solamente se la propria area non contiene automi;
+- gli ostacoli occupano anche i punti appartenenti al proprio perimetro e, una volta inseriti, non possono essere rimossi.
+
+Gli automi non costituiscono un ostacolo per il movimento. Se viene inserito un automa con un nome già presente, esso viene riposizionato nel nuovo punto, a condizione che questo non sia occupato da un ostacolo.
+
+## Operazioni principali
+
+Oltre all'inserimento di automi e ostacoli, è possibile conoscere lo stato di un punto, stampare tutte le entità presenti nel piano e cercare gli automi il cui nome ha un determinato prefisso.
+
+L'operazione di esistenza di un percorso, dati un automa $\eta$ e un punto di arrivo $Q$, stabilisce se esiste un percorso libero da $P(\eta)$ a $Q$ di lunghezza $D(P(\eta),Q)$. Il risultato è negativo se l'automa non esiste, se un ostacolo impedisce tutti i percorsi di lunghezza minima oppure se l'automa si trova già sul punto di arrivo.
+
+L'operazione di richiamo, dati un punto $Q$ e un prefisso $s$, considera tutti gli automi il cui nome inizia con $s$. Tra gli automi per cui esiste un percorso libero verso $Q$ vengono spostati tutti e soli quelli per cui $D(P(\eta),Q)$ è minima. Se il punto di richiamo è occupato da un ostacolo non viene spostato alcun automa.
+
+La relazione completa, nella quale vengono descritte le scelte implementative, gli algoritmi utilizzati e l'analisi dei costi, è resa disponibile in formato PDF nelle [release del repository](../../releases). Il sorgente Latex è disponibile all'interno del repository (_relazione.tex_). All'interno della relazione vengono approfondite le operazioni spiegate in questo paragrafo.
 
 ## Esecuzione
 
@@ -25,7 +50,7 @@ go run main.go
 In alternativa è possibile passare un file contenente una sequenza di comandi:
 
 ```bash
-go run main.go < test/input2.txt
+go run main.go < tests/input2.txt
 ```
 
 Il primo comando deve essere `c`, che crea un nuovo piano. I comandi disponibili sono:
@@ -42,10 +67,10 @@ Il primo comando deve essere `c`, che crea un nuovo piano. I comandi disponibili
 
 ## Test
 
-La cartella `test` contiene sei coppie di file. Ogni file `inputX.txt` contiene i comandi da fornire al programma, mentre il corrispondente `expectedX.txt` contiene l'output atteso. Per esempio, il secondo test può essere controllato con:
+La cartella `tests` contiene sei coppie di file. Ogni file `inputX.txt` contiene i comandi da fornire al programma, mentre il corrispondente `expectedX.txt` contiene l'output atteso. Per esempio, il secondo test può essere controllato con:
 
 ```bash
-go run main.go < test/input2.txt | diff -u test/expected2.txt -
+go run main.go < tests/input2.txt | diff -u tests/expected2.txt -
 ```
 
-I test prendono in considerazione piani con entità molto sparse, percorsi su una sola direzione, ostacoli numerosi e casi limite della matrice di programmazione dinamica. Sono inoltre presenti esempi relativi sia all'esistenza di un percorso sia al richiamo degli automi.
+I test prendono in considerazione piani con entità molto sparse, percorsi su una sola direzione, ostacoli numerosi e diversi casi limite. Sono inoltre presenti esempi relativi sia all'esistenza di un percorso sia al richiamo degli automi.
